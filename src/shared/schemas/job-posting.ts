@@ -1,11 +1,6 @@
-import { z } from "zod";
+import { z } from 'zod';
 
-export const EmploymentTypeSchema = z.enum([
-  "full_time",
-  "part_time",
-  "contract",
-  "internship",
-]);
+export const EmploymentTypeSchema = z.enum(['full_time', 'part_time', 'contract', 'internship']);
 export type EmploymentType = z.infer<typeof EmploymentTypeSchema>;
 
 /**

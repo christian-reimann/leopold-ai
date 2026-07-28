@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.next/
+storage/
+pnpm-lock.yaml
+drizzle/meta/
+next-env.d.ts

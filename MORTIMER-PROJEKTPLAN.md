@@ -15,6 +15,7 @@
 Das Projekt soll nach Abschluss **als Open Source** veröffentlicht werden.
 
 **Wichtige Rahmenbedingungen:**
+
 - **Kein Python.** Durchgängig TypeScript.
 - Entwickler hat **TypeScript-Grundlagen**, aber noch kein großes Projekt umgesetzt.
 - LLM-Nutzung: **Mix** – Paid-LLMs (Claude/GPT) für Generierung ok, lokal (Ollama)
@@ -23,6 +24,7 @@ Das Projekt soll nach Abschluss **als Open Source** veröffentlicht werden.
   (wichtig, weil andere den Open-Source-Code lesen sollen).
 
 **Lernprioritäten (in dieser Reihenfolge):**
+
 1. RAG / Vektor-Suche
 2. Agenten & Tool-Calling
 3. Workflow-Orchestrierung
@@ -52,28 +54,29 @@ Das Projekt soll nach Abschluss **als Open Source** veröffentlicht werden.
 
 ## 3. Tech-Stack (entschieden)
 
-| Bereich | Wahl | Begründung |
-|---|---|---|
-| Sprache/Runtime | **TypeScript**, Node.js 22+ | Kein Python gewünscht; reifes JS/TS-Ökosystem für LLM/RAG |
-| Frontend + API | **Next.js (App Router)**, **server-first / schlanke Variante** | Marktrelevant, integriert, viel Lernmaterial. Bewusst als **zusätzliches Lernziel** gewählt. Stil: Server Components + Server Actions, minimales Boilerplate (Details §6) |
-| WYSIWYG-Editor | **TipTap** (ProseMirror-basiert) | Ideal für strukturierte Dokumente (Lebenslauf/Anschreiben) |
-| Upload | **react-dropzone** | Drag-and-Drop |
-| UI | **shadcn/ui + Tailwind** | Schlank, verbreitet |
-| Worker | **Eigenständiger Node-Prozess** | Trennt schwere Logik (Scraping, Embedding, Matching) vom Web-Request-Zyklus |
-| Queue/Scheduling | **BullMQ (Redis)** | Wiederkehrende Suchaufträge, Benachrichtigungsintervalle (Repeatable Jobs) |
-| DB + Vektoren | **PostgreSQL + pgvector** | Eine DB für relationale Daten **und** RAG – keine separate Vektor-DB nötig |
-| ORM | **Drizzle** | TypeScript-nativ, schlank, explizit |
-| Validierung / Schemas | **Zod** | Laufzeit-Validierung + abgeleitete TS-Typen; Basis für Structured Output |
-| LLM-Schicht | **Vercel AI SDK** | Schlanke, typisierte Primitive (Tool-Calling, `generateObject`), Provider-Abstraktion |
-| Embeddings | **Ollama, lokal** (z.B. `bge-m3` / `nomic-embed-text`) | Kostenlos, deutschtauglich (Modellwahl noch offen, siehe §7) |
-| Generierung | **Claude / GPT** (via AI SDK) | Beste Qualität für Anschreiben/Extraktion |
-| Agenten-Orchestrierung | **AI SDK zuerst**, **LangGraph.js gezielt später** | Erst Primitive verstehen, Framework nur wo echter Mehrwert |
-| Scraping | **Playwright** | Exzellente Node-Bindings, kein Python |
-| PDF-Export | **react-pdf** oder **Puppeteer** | Deklarativ (react-pdf) oder HTML→PDF (Puppeteer) |
-| Paketmanager | **pnpm** (ein einziges Package, keine Workspaces) | Siehe „Modularer Monolith statt Multi-Package-Monorepo" unten |
-| Grenzen zwischen Modulen | **ESLint (`import/no-restricted-paths`)** statt physischer Packages | Erzwingt Abhängigkeitsrichtung zur Lint-Zeit, ohne `workspace:*`-Overhead |
+| Bereich                  | Wahl                                                                | Begründung                                                                                                                                                                |
+| ------------------------ | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sprache/Runtime          | **TypeScript**, Node.js 22+                                         | Kein Python gewünscht; reifes JS/TS-Ökosystem für LLM/RAG                                                                                                                 |
+| Frontend + API           | **Next.js (App Router)**, **server-first / schlanke Variante**      | Marktrelevant, integriert, viel Lernmaterial. Bewusst als **zusätzliches Lernziel** gewählt. Stil: Server Components + Server Actions, minimales Boilerplate (Details §6) |
+| WYSIWYG-Editor           | **TipTap** (ProseMirror-basiert)                                    | Ideal für strukturierte Dokumente (Lebenslauf/Anschreiben)                                                                                                                |
+| Upload                   | **react-dropzone**                                                  | Drag-and-Drop                                                                                                                                                             |
+| UI                       | **shadcn/ui + Tailwind**                                            | Schlank, verbreitet                                                                                                                                                       |
+| Worker                   | **Eigenständiger Node-Prozess**                                     | Trennt schwere Logik (Scraping, Embedding, Matching) vom Web-Request-Zyklus                                                                                               |
+| Queue/Scheduling         | **BullMQ (Redis)**                                                  | Wiederkehrende Suchaufträge, Benachrichtigungsintervalle (Repeatable Jobs)                                                                                                |
+| DB + Vektoren            | **PostgreSQL + pgvector**                                           | Eine DB für relationale Daten **und** RAG – keine separate Vektor-DB nötig                                                                                                |
+| ORM                      | **Drizzle**                                                         | TypeScript-nativ, schlank, explizit                                                                                                                                       |
+| Validierung / Schemas    | **Zod**                                                             | Laufzeit-Validierung + abgeleitete TS-Typen; Basis für Structured Output                                                                                                  |
+| LLM-Schicht              | **Vercel AI SDK**                                                   | Schlanke, typisierte Primitive (Tool-Calling, `generateObject`), Provider-Abstraktion                                                                                     |
+| Embeddings               | **Ollama, lokal** (z.B. `bge-m3` / `nomic-embed-text`)              | Kostenlos, deutschtauglich (Modellwahl noch offen, siehe §7)                                                                                                              |
+| Generierung              | **Claude / GPT** (via AI SDK)                                       | Beste Qualität für Anschreiben/Extraktion                                                                                                                                 |
+| Agenten-Orchestrierung   | **AI SDK zuerst**, **LangGraph.js gezielt später**                  | Erst Primitive verstehen, Framework nur wo echter Mehrwert                                                                                                                |
+| Scraping                 | **Playwright**                                                      | Exzellente Node-Bindings, kein Python                                                                                                                                     |
+| PDF-Export               | **react-pdf** oder **Puppeteer**                                    | Deklarativ (react-pdf) oder HTML→PDF (Puppeteer)                                                                                                                          |
+| Paketmanager             | **pnpm** (ein einziges Package, keine Workspaces)                   | Siehe „Modularer Monolith statt Multi-Package-Monorepo" unten                                                                                                             |
+| Grenzen zwischen Modulen | **ESLint (`import/no-restricted-paths`)** statt physischer Packages | Erzwingt Abhängigkeitsrichtung zur Lint-Zeit, ohne `workspace:*`-Overhead                                                                                                 |
 
 ### Bewusst NICHT gewählt
+
 - **LangChain.js** – zu viele Abstraktionsebenen, verschleiert die Konzepte
   (Gefahr: „Framework lernen statt Problem lösen").
 - **Mastra** – interessant, aber jung; für ein Lernprojekt lenkt „batteries-included"
@@ -87,6 +90,7 @@ Das Projekt soll nach Abschluss **als Open Source** veröffentlicht werden.
 ## 4. Architektur
 
 ### Grundprinzip (WICHTIGSTE REGEL)
+
 Die **Next.js-App** und der **Worker** kommunizieren **NICHT direkt** miteinander.
 Ihre Schnittstelle sind **Datenbank** und **Queue**:
 
@@ -98,6 +102,7 @@ Das hält beide Teile entkoppelt. **Niemals** schwere Arbeit (Embedding, Scrapin
 in einer Server Action / im Request-Zyklus laufen lassen – das gehört in die Queue.
 
 ### Struktur
+
 ```
 mortimer/
 ├── src/
@@ -115,6 +120,7 @@ mortimer/
 ```
 
 ### Modularer Monolith statt Multi-Package-Monorepo
+
 `app` und `worker` sind weiterhin zwei getrennte **Laufzeitprozesse** (siehe Grundprinzip
 oben) – aber kein Multi-Package-Monorepo mehr. Ursprünglich war dafür ein
 pnpm-Workspace mit physisch getrennten Packages (`apps/*`, `packages/*`) geplant.
@@ -157,6 +163,7 @@ Grobe Tabellenübersicht (verfeinern in Claude Code):
 Diese Einsichten sind zentral fürs Projekt und für die Lernziele:
 
 ### RAG ist nicht überall die Antwort
+
 - **Profil-Extraktion aus Dokumenten** → **KEIN RAG.** Reine strukturierte Extraktion
   (LLM + Zod-Schema via `generateObject`). Kein Chunking, keine Vektorsuche.
 - **Matching Job ↔ Profil** → Embeddings nur als **Vorfilter** („welche 50 von 5000
@@ -164,35 +171,40 @@ Diese Einsichten sind zentral fürs Projekt und für die Lernziele:
 - **Bewerbungs-Generierung** → **echtes RAG** (relevante Ausschnitte aus Lebenslauf,
   Zeugnissen, früheren Bewerbungen als Kontext).
 
-**Kernsatz:** *Vektorsuche ist ein Retrieval-/Vorfilter-Werkzeug, kein Bewertungs-
-Werkzeug. Sie findet „ähnlich", nicht „gut passend".*
+**Kernsatz:** _Vektorsuche ist ein Retrieval-/Vorfilter-Werkzeug, kein Bewertungs-
+Werkzeug. Sie findet „ähnlich", nicht „gut passend"._
 
 ### Workflow vs. Agent
+
 - Das meiste in Mortimer (finden → dedup → klassifizieren → scoren → speichern) ist ein
   **deterministischer Workflow** = normaler TS-Code, der an Punkten das LLM aufruft.
   **Kein** frei entscheidender Agent (nicht-deterministisch, teuer, schwer zu debuggen).
 - **Echter Agent** lohnt sich v.a. bei der **Bewerbungs-Generierung** (LLM entscheidet
   selbst, welche Tools/Kontexte es zieht).
-- **Kernsatz:** *Die meisten „Agenten"-Probleme sind in Wahrheit Workflow-Probleme.*
+- **Kernsatz:** _Die meisten „Agenten"-Probleme sind in Wahrheit Workflow-Probleme._
 
 ### Structured Output = LLM + Zod
+
 „Structured Output" bedeutet konkret: dem LLM ein Zod-Schema vorgeben und garantiert
 passendes JSON zurückbekommen (`generateObject` im AI SDK). Das ist die Brücke zwischen
 unstrukturierter LLM-Welt und typisiertem Code. An jeder LLM-Grenze anwenden.
 
 ### Matching – die zwei Score-Richtungen (noch zu vertiefen)
+
 „Wie gut passt der Job zu meinem Suchprofil" und „wie gut passe ich zum Jobprofil" sind
 **konzeptionell verschieden**. Reine Cosine-Similarity reicht für keinen von beiden.
 Geplanter Ansatz: **hybrid** – Embedding-Vorfilter + strukturiertes Feld-Matching +
 LLM-as-judge für die Nuancen. (Design-Detail für Claude Code.)
 
 ### Connector-Abstraktion (Feature 4)
+
 Ein einheitliches Ziel-Schema `JobPosting`; pro Quelle (öffentliche API / Paid-API /
 Playwright-Scraper) **ein Adapter**, der auf dieses Schema mappt. Deduplizierung über
 `dedupe_hash`; für Cross-Board-Duplikate ggf. Fuzzy-/Near-Duplicate-Erkennung
 (Embedding-Ähnlichkeit als Kandidat).
 
 ### Next.js – bevorzugter Code-Stil (WICHTIG: schlanke Variante)
+
 Es wird **bewusst die schlanke, „server-first" Variante** von Next.js gewünscht –
 maximal wenig Boilerplate, nichts Verstecktes über Daten-Layer hinweg:
 
@@ -209,6 +221,7 @@ Ziel: so wenig Verdrahtung wie möglich, DB-Zugriff dort wo er hingehört (Serve
 lesbar für Open-Source-Mitwirkende.
 
 ### Next.js-Lernreihenfolge (um sich nicht zu verzetteln)
+
 1. Server vs. Client Components (Default: Server; `"use client"` nur bei Interaktivität)
 2. Data Fetching in Server Components (`async` + direkter DB-Zugriff)
 3. Server Actions für Mutationen (mit **Zod-Validierung** am Anfang jeder Action,
@@ -238,6 +251,7 @@ lesbar für Open-Source-Mitwirkende.
 > Deckt sich bewusst mit den Lernprioritäten und baut inkrementell auf.
 
 **Phase 0 – Fundament**
+
 - Package-Grundgerüst aufsetzen: `src/{shared,db,llm,core,connectors,worker}` +
   ESLint-Grenzregeln (`import/no-restricted-paths`)
 - `docker-compose`: Postgres+pgvector, Redis, Ollama
@@ -245,35 +259,42 @@ lesbar für Open-Source-Mitwirkende.
 - Zod-Schemas in `src/shared`
 
 **Phase 1 – Workspace-Basis (Feature 1)**
+
 - Next.js-Grundgerüst, Upload (react-dropzone)
 - Dokumenten-Parsing im Worker (PDF: `unpdf`/`pdf-parse`; DOCX: `mammoth`)
 - **Profil-Extraktion** via `generateObject` + Zod (erstes LLM-Feature, KEIN RAG)
 - Profildaten anzeigen/manuell editieren
 
 **Phase 2 – RAG-Fundament (Lernziel 1)**
+
 - Chunking + Embeddings (Ollama) für Dokumente
 - pgvector-Index, Ähnlichkeitssuche
 - Retrieval testen/verstehen (Grundlage für Matching & Generierung)
 
 **Phase 3 – Connector + Job-Ingestion (Feature 4 + Teil 2)**
+
 - Einheitliches `JobPosting`-Schema + erster Adapter (eine öffentliche API oder
   ein Playwright-Scraper)
 - Dedup, Persistierung, Embeddings für Jobs
 - Suchaufträge + BullMQ Repeatable Jobs
 
 **Phase 4 – Matching (Lernziele 1+2)**
+
 - Embedding-Vorfilter → Feld-Matching → LLM-Judge (hybrid)
 - Bidirektionale Scores + `reasoning` persistieren
 
 **Phase 5 – Bewerbungs-Generierung (Feature 3, Lernziele 2+3)**
+
 - Echtes RAG als Kontext; ggf. erster **echter Agent** (AI SDK `maxSteps`,
   später evtl. LangGraph.js)
 - TipTap-WYSIWYG, dann PDF-Export
 
 **Phase 6 – Benachrichtigungen (Feature 5)**
+
 - Intervalle (instant/daily) via BullMQ; Zustellkanal (E-Mail o.ä.)
 
 **Phase 7 – Open-Source-Politur**
+
 - README, Lizenz, `.env.example`, Setup-Doku, Docker-Onboarding
 
 ---
@@ -281,44 +302,48 @@ lesbar für Open-Source-Mitwirkende.
 ## 9. Referenz-Snippets
 
 ### Structured Output (Profil-Extraktion) – AI SDK + Zod
+
 ```typescript
-import { generateObject } from "ai";
-import { z } from "zod";
+import { generateObject } from 'ai';
+import { z } from 'zod';
 
 const ProfileSchema = z.object({
   name: z.string(),
   skills: z.array(z.string()),
-  experience: z.array(z.object({
-    role: z.string(),
-    company: z.string(),
-    years: z.number(),
-  })),
+  experience: z.array(
+    z.object({
+      role: z.string(),
+      company: z.string(),
+      years: z.number(),
+    }),
+  ),
 });
 
 const { object } = await generateObject({
   model,
-  schema: ProfileSchema,          // LLM MUSS diesem Schema folgen
+  schema: ProfileSchema, // LLM MUSS diesem Schema folgen
   prompt: `Extrahiere die Profildaten aus:\n${lebenslaufText}`,
 });
 // `object` ist garantiert typisiert & validiert
 ```
 
 ### Einfacher Agent-Loop – AI SDK Tool-Calling
+
 ```typescript
-import { generateText, tool } from "ai";
-import { z } from "zod";
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
 
 const result = await generateText({
   model,
-  prompt: "Finde passende Jobs für Profil X und bewerte den Top-Treffer.",
+  prompt: 'Finde passende Jobs für Profil X und bewerte den Top-Treffer.',
   tools: {
     searchJobs: tool({
-      description: "Sucht Jobangebote in der DB per Vektor-Ähnlichkeit",
+      description: 'Sucht Jobangebote in der DB per Vektor-Ähnlichkeit',
       parameters: z.object({ query: z.string(), limit: z.number() }),
       execute: async ({ query, limit }) => findSimilarJobs(query, limit),
     }),
   },
-  maxSteps: 5,  // erlaubt mehrfache Tool-Nutzung = simpler Agent-Loop
+  maxSteps: 5, // erlaubt mehrfache Tool-Nutzung = simpler Agent-Loop
 });
 ```
 

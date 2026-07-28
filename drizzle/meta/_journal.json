@@ -8,6 +8,20 @@
       "when": 1784942067291,
       "tag": "0000_colossal_mastermind",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784947324866,
+      "tag": "0001_chief_tag",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785201656442,
+      "tag": "0002_puzzling_ultimatum",
+      "breakpoints": true
     }
   ]
 }

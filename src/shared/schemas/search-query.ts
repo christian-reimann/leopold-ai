@@ -1,7 +1,7 @@
-import { z } from "zod";
-import { EmploymentTypeSchema } from "./job-posting.js";
+import { z } from 'zod';
+import { EmploymentTypeSchema } from './job-posting';
 
-export const NOTIFICATION_INTERVALS = ["instant", "daily"] as const;
+export const NOTIFICATION_INTERVALS = ['instant', 'daily'] as const;
 export const NotificationIntervalSchema = z.enum(NOTIFICATION_INTERVALS);
 export type NotificationInterval = z.infer<typeof NotificationIntervalSchema>;
 
