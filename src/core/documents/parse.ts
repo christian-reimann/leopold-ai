@@ -3,19 +3,12 @@ import path from 'node:path';
 import { eq } from 'drizzle-orm';
 import mammoth from 'mammoth';
 import { extractText, getDocumentProxy, renderPageAsImage } from 'unpdf';
+import { enqueueEmbedDocument } from '@/core/queue/document-queue';
 import { db } from '@/db/client';
 import { documents } from '@/db/schema/documents';
 import { transcribeImage, type ImageMediaType } from '@/llm/vision-extraction';
 
-export const SUPPORTED_DOCUMENT_EXTENSIONS = [
-  '.pdf',
-  '.docx',
-  '.txt',
-  '.jpg',
-  '.jpeg',
-  '.png',
-  '.webp',
-] as const;
+export const SUPPORTED_DOCUMENT_EXTENSIONS = ['.pdf', '.docx', '.txt', '.jpg', '.jpeg', '.png', '.webp'] as const;
 export type SupportedDocumentExtension = (typeof SUPPORTED_DOCUMENT_EXTENSIONS)[number];
 
 export function isSupportedDocumentExtension(extension: string): extension is SupportedDocumentExtension {
@@ -105,6 +98,8 @@ export async function parseDocumentById(documentId: string): Promise<void> {
       .update(documents)
       .set({ status: 'done', extractedText, updatedAt: new Date() })
       .where(eq(documents.id, documentId));
+
+    await enqueueEmbedDocument(documentId);
   } catch (error) {
     await db
       .update(documents)

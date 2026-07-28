@@ -43,7 +43,7 @@ export async function uploadDocument(formData: FormData): Promise<void> {
   }
 
   await enqueueParseDocument(document.id);
-  revalidatePath('/dokumente');
+  revalidatePath('/documents');
 }
 
 const DocumentIdSchema = z.uuid();
@@ -51,7 +51,7 @@ const DocumentIdSchema = z.uuid();
 export async function extractProfileAction(documentIds: string[]): Promise<void> {
   const ids = z.array(DocumentIdSchema).min(1).parse(documentIds);
   await enqueueExtractProfile(ids);
-  revalidatePath('/dokumente');
+  revalidatePath('/documents');
 }
 
 export async function removeDocumentAction(documentId: string): Promise<void> {
@@ -65,5 +65,5 @@ export async function removeDocumentAction(documentId: string): Promise<void> {
   await db.delete(documents).where(eq(documents.id, id));
   await rm(path.join(process.cwd(), document.storagePath), { force: true });
 
-  revalidatePath('/dokumente');
+  revalidatePath('/documents');
 }

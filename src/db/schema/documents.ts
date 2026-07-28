@@ -11,6 +11,8 @@ export const documents = pgTable('documents', {
   extractedText: text('extracted_text'),
   status: documentStatusEnum('status').notNull().default('pending'),
   error: text('error'),
+  embeddingStatus: documentStatusEnum('embedding_status').notNull().default('pending'),
+  embeddingError: text('embedding_error'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

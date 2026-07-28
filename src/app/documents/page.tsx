@@ -5,12 +5,17 @@ import { profiles } from '@/db/schema/profiles';
 import { DocumentList } from './document-list';
 import { UploadDropzone } from './upload-dropzone';
 
-export default async function WorkspacePage() {
+export default async function DocumentPage() {
   const [docs, [profile]] = await Promise.all([
     db.select().from(documents).orderBy(desc(documents.createdAt)),
     db.select({ status: profiles.status, error: profiles.error }).from(profiles).limit(1),
   ]);
-  const hasPendingDocs = docs.some((doc) => doc.status === 'pending' || doc.status === 'processing');
+  const hasPendingDocs = docs.some(
+    (doc) =>
+      doc.status === 'pending' ||
+      doc.status === 'processing' ||
+      (doc.status === 'done' && (doc.embeddingStatus === 'pending' || doc.embeddingStatus === 'processing')),
+  );
 
   return (
     <div className="space-y-8">
@@ -28,6 +33,8 @@ export default async function WorkspacePage() {
             type: doc.type,
             status: doc.status,
             error: doc.error,
+            embeddingStatus: doc.embeddingStatus,
+            embeddingError: doc.embeddingError,
           }))}
           hasProfile={Boolean(profile)}
           hasPendingDocs={hasPendingDocs}

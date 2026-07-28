@@ -18,11 +18,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <header className="border-b border-neutral-200">
           <nav className="mx-auto flex max-w-4xl items-center gap-6 px-6 py-4 text-sm font-medium">
             <span className="font-semibold tracking-tight">Mortimer</span>
-            <a href="/dokumente" className="text-neutral-600 hover:text-neutral-900">
+            <a href="/documents" className="text-neutral-600 hover:text-neutral-900">
               Dokumente
             </a>
             <a href="/profile" className="text-neutral-600 hover:text-neutral-900">
               Profil
+            </a>
+            <a href="/retrieval" className="text-neutral-600 hover:text-neutral-900">
+              Retrieval
             </a>
           </nav>
         </header>

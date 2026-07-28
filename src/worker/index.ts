@@ -1,6 +1,7 @@
 import { type Job, Worker } from 'bullmq';
 import { redisConnection } from '@/core/queue/connection';
 import { DOCUMENT_JOB_NAMES } from '@/core/queue/document-queue';
+import { processEmbedDocument } from './processors/embed-document';
 import { processExtractProfile } from './processors/extract-profile';
 import { processParseDocument } from './processors/parse-document';
 
@@ -10,6 +11,8 @@ async function processDocumentJob(job: Job): Promise<void> {
       return processParseDocument(job);
     case DOCUMENT_JOB_NAMES.EXTRACT_PROFILE:
       return processExtractProfile(job);
+    case DOCUMENT_JOB_NAMES.EMBED_DOCUMENT:
+      return processEmbedDocument(job);
     default:
       throw new Error(`Unbekannter Job-Typ: ${job.name}`);
   }

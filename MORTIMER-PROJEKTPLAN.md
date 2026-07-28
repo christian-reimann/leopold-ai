@@ -235,11 +235,19 @@ lesbar für Open-Source-Mitwirkende.
 
 ## 7. Offene Entscheidungen (in Claude Code klären)
 
-- **Embedding-Modell** konkret wählen: `bge-m3` vs. `nomic-embed-text` vs.
-  `mxbai-embed-large` – Kriterien: Deutsch-Qualität, Dimensionen, Geschwindigkeit.
-- **pgvector-Index:** HNSW vs. IVFFlat; Distanzmetrik (cosine/L2/inner product).
-- **Chunking-Strategie** für Lebensläufe/Inserate (kurz & strukturiert → feldbasiertes
-  oder semantisches Splitten statt naivem Fixed-Size).
+- ~~**Embedding-Modell**~~ **Entschieden (Phase 2): `bge-m3`, 1024 Dimensionen.**
+  Läuft lokal über Ollama (`src/llm/embeddings.ts`, direkter Aufruf der nativen
+  `/api/embed`-Batch-API statt AI-SDK-Provider-Abstraktion – für einen einzelnen
+  lokalen Endpunkt schlanker).
+- ~~**pgvector-Index**~~ **Entschieden (bereits in Phase 0 im Schema angelegt):**
+  HNSW-Index, Distanzmetrik Cosine (`vector_cosine_ops`), siehe
+  `src/db/schema/document-chunks.ts`. Abfrage über Drizzles `cosineDistance()`
+  (`src/core/documents/search-chunks.ts`). **Falle:** der `<=>`-Operator bindet
+  schwächer als arithmetische Operatoren – `1 - cosineDistance(...)` braucht
+  explizite Klammern, sonst Typfehler in Postgres.
+- ~~**Chunking-Strategie**~~ **Entschieden (Phase 2):** einfaches absatzbasiertes
+  Packen bis zu einer Zielgröße (`src/core/documents/chunk.ts`), kein Overlap –
+  Bewerbungsunterlagen sind kurz und bereits in Absätze strukturiert.
 - **Matching-Scoring** im Detail (Gewichtung Embedding / Feld-Match / LLM-Judge).
 - **PDF-Weg:** react-pdf (deklarativ) vs. Puppeteer (HTML→PDF, nutzt Playwright-Wissen).
 - **Storage** für Uploads: lokal (Dev) vs. S3-kompatibel (später).
@@ -265,11 +273,18 @@ lesbar für Open-Source-Mitwirkende.
 - **Profil-Extraktion** via `generateObject` + Zod (erstes LLM-Feature, KEIN RAG)
 - Profildaten anzeigen/manuell editieren
 
-**Phase 2 – RAG-Fundament (Lernziel 1)**
+**Phase 2 – RAG-Fundament (Lernziel 1)** ✅ abgeschlossen
 
-- Chunking + Embeddings (Ollama) für Dokumente
-- pgvector-Index, Ähnlichkeitssuche
-- Retrieval testen/verstehen (Grundlage für Matching & Generierung)
+- Chunking (`src/core/documents/chunk.ts`) + Embeddings via Ollama/bge-m3
+  (`src/llm/embeddings.ts`) für Dokumente
+- Neuer Worker-Job `embed-document`, automatisch nach erfolgreichem Parsing
+  angestoßen (`src/core/documents/embed.ts`, idempotent – ersetzt bestehende
+  Chunks bei Re-Embedding)
+- `documents` um `embedding_status`/`embedding_error` erweitert, Status-Badge
+  im Workspace
+- pgvector-Ähnlichkeitssuche (`src/core/documents/search-chunks.ts`,
+  Cosine-Similarity über den in Phase 0 angelegten HNSW-Index)
+- Retrieval-Testseite unter `/retrieval` zum Ausprobieren/Verstehen der Suche
 
 **Phase 3 – Connector + Job-Ingestion (Feature 4 + Teil 2)**
 

@@ -9,3 +9,8 @@ export const ExtractProfileJobSchema = z.object({
   documentIds: z.array(z.uuid()).min(1),
 });
 export type ExtractProfileJob = z.infer<typeof ExtractProfileJobSchema>;
+
+export const EmbedDocumentJobSchema = z.object({
+  documentId: z.uuid(),
+});
+export type EmbedDocumentJob = z.infer<typeof EmbedDocumentJobSchema>;
