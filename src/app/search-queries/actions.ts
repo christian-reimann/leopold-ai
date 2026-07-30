@@ -18,6 +18,13 @@ export async function createSearchQueryAction(input: unknown): Promise<void> {
 
 const SearchQueryIdSchema = z.uuid();
 
+export async function updateSearchQueryAction(searchQueryId: string, input: unknown): Promise<void> {
+  const id = SearchQueryIdSchema.parse(searchQueryId);
+  const { criteria, interval } = CreateSearchQuerySchema.parse(input);
+  await searchQueryService.update(id, { criteria, interval });
+  revalidatePath('/search-queries');
+}
+
 export async function setSearchQueryActiveAction(searchQueryId: string, active: boolean): Promise<void> {
   const id = SearchQueryIdSchema.parse(searchQueryId);
   await searchQueryService.setActive(id, active);

@@ -8,8 +8,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { EmploymentTypeSchema } from '@/shared/schemas/job-posting';
-import { NOTIFICATION_INTERVALS, type NotificationInterval } from '@/shared/schemas/search-query';
-import { createSearchQueryAction } from './actions';
+import { NOTIFICATION_INTERVALS, type NotificationInterval, type SearchCriteria } from '@/shared/schemas/search-query';
+import { createSearchQueryAction, updateSearchQueryAction } from './actions';
 
 const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
   full_time: 'Vollzeit',
@@ -21,21 +21,29 @@ const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
 };
 
 const INTERVAL_LABELS: Record<NotificationInterval, string> = {
-  instant: 'Sofort (stündlich geprüft)',
+  instant: 'Stündlich',
   daily: 'Täglich',
 };
 
 const selectClassName = 'h-8 w-full border border-neutral-300 px-2 text-sm';
 
-export function SearchQueryForm() {
-  const [keywords, setKeywords] = useState<string[]>([]);
+type SearchQueryFormProps =
+  | { searchQueryId?: undefined; initial?: undefined; onSaved?: undefined; onCancel?: undefined }
+  | {
+      searchQueryId: string;
+      initial: { criteria: SearchCriteria; interval: NotificationInterval };
+      onSaved: () => void;
+      onCancel: () => void;
+    };
+
+export function SearchQueryForm({ searchQueryId, initial, onSaved, onCancel }: SearchQueryFormProps = {}) {
+  const [keywords, setKeywords] = useState<string[]>(initial?.criteria.keywords ?? []);
   const [keywordDraft, setKeywordDraft] = useState('');
-  const [location, setLocation] = useState('');
-  const [radiusKm, setRadiusKm] = useState('');
-  const [remote, setRemote] = useState(false);
-  const [employmentTypes, setEmploymentTypes] = useState<string[]>([]);
-  const [postedWithinDays, setPostedWithinDays] = useState('');
-  const [interval, setInterval] = useState<NotificationInterval>('daily');
+  const [location, setLocation] = useState(initial?.criteria.location ?? '');
+  const [radiusKm, setRadiusKm] = useState(initial?.criteria.radiusKm?.toString() ?? '');
+  const [remote, setRemote] = useState(initial?.criteria.remote ?? false);
+  const [employmentTypes, setEmploymentTypes] = useState<string[]>(initial?.criteria.employmentTypes ?? []);
+  const [interval, setInterval] = useState<NotificationInterval>(initial?.interval ?? 'daily');
 
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -61,30 +69,38 @@ export function SearchQueryForm() {
     setEmploymentTypes((prev) => (checked ? [...prev, type] : prev.filter((t) => t !== type)));
   }
 
+  const isEditMode = searchQueryId !== undefined;
+
   function handleSubmit() {
     setError(null);
     startTransition(async () => {
       try {
-        await createSearchQueryAction({
+        const input = {
           criteria: {
             keywords,
             location: location || undefined,
             radiusKm: radiusKm ? Number(radiusKm) : undefined,
             remote: remote || undefined,
             employmentTypes: employmentTypes.length > 0 ? employmentTypes : undefined,
-            postedWithinDays: postedWithinDays ? Number(postedWithinDays) : undefined,
           },
           interval,
-        });
+        };
+
+        if (isEditMode) {
+          await updateSearchQueryAction(searchQueryId, input);
+          onSaved();
+          return;
+        }
+
+        await createSearchQueryAction(input);
         setKeywords([]);
         setLocation('');
         setRadiusKm('');
         setRemote(false);
         setEmploymentTypes([]);
-        setPostedWithinDays('');
         setInterval('daily');
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Suchauftrag konnte nicht angelegt werden');
+        setError(err instanceof Error ? err.message : 'Suchauftrag konnte nicht gespeichert werden');
       }
     });
   }
@@ -123,7 +139,7 @@ export function SearchQueryForm() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="location">Ort</Label>
           <Input id="location" value={location} onChange={(event) => setLocation(event.target.value)} />
@@ -136,16 +152,6 @@ export function SearchQueryForm() {
             min="0"
             value={radiusKm}
             onChange={(event) => setRadiusKm(event.target.value)}
-          />
-        </div>
-        <div>
-          <Label htmlFor="postedWithinDays">Veröffentlicht seit (Tagen)</Label>
-          <Input
-            id="postedWithinDays"
-            type="number"
-            min="0"
-            value={postedWithinDays}
-            onChange={(event) => setPostedWithinDays(event.target.value)}
           />
         </div>
       </div>
@@ -189,8 +195,13 @@ export function SearchQueryForm() {
 
       <div className="flex items-center gap-3">
         <Button type="button" onClick={handleSubmit} disabled={keywords.length === 0 || isPending}>
-          {isPending ? 'Legt an …' : 'Suchauftrag anlegen'}
+          {isEditMode ? (isPending ? 'Speichert …' : 'Speichern') : isPending ? 'Legt an …' : 'Suchauftrag anlegen'}
         </Button>
+        {isEditMode && (
+          <Button type="button" variant="ghost" onClick={onCancel} disabled={isPending}>
+            Abbrechen
+          </Button>
+        )}
         {error && <span className="text-sm text-red-600">{error}</span>}
       </div>
     </div>

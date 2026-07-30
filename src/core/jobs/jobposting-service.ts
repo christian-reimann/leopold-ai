@@ -19,7 +19,7 @@ export class JobPostingService {
       .select()
       .from(jobPostings)
       .where(isNull(jobPostings.duplicateOfId))
-      .orderBy(desc(jobPostings.createdAt))
+      .orderBy(sql`${jobPostings.data}->>'postedAt' DESC NULLS LAST`)
       .limit(limit);
   }
 

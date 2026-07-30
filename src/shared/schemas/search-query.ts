@@ -11,6 +11,5 @@ export const SearchCriteriaSchema = z.object({
   radiusKm: z.number().optional(),
   remote: z.boolean().optional(),
   employmentTypes: z.array(EmploymentTypeSchema).optional(),
-  postedWithinDays: z.number().optional(),
 });
 export type SearchCriteria = z.infer<typeof SearchCriteriaSchema>;

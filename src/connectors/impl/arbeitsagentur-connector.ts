@@ -63,8 +63,6 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
   private static readonly API_KEY = 'jobboerse-jobsuche';
   private static readonly PAGE_SIZE = 25;
 
-  // arbeitszeit: vz/tz/mj live verifiziert (2026-07). `ho` aus der alten Doku liefert 0 Treffer –
-  // Remote-Filterung läuft inzwischen über den separaten `homeoffice`-Parameter (siehe unten).
   private static readonly ARBEITSZEIT_BY_EMPLOYMENT_TYPE: Partial<Record<string, string>> = {
     full_time: 'vz',
     part_time: 'tz',
@@ -72,17 +70,17 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
     minijob: 'mj',
   };
 
-  // stellenangebotsart/angebotsart ist ein Einzelwert, kein Semikolon-Set wie arbeitszeit/befristung.
-  // Werte live verifiziert: 2 → SELBSTAENDIGKEIT, 34 → PRAKTIKUM_TRAINEE.
   private static readonly ANGEBOTSART_BY_EMPLOYMENT_TYPE: Partial<Record<string, string>> = {
+    full_time: '1',
+    part_time: '1',
+    minijob: '1',
+    working_student: '34',
     internship: '34',
     freelance: '2',
   };
 
   readonly id = 'arbeitsagentur';
-  // Pro Quelle konfigurierbar und im UA identifizierbar (Transparenz gegenüber der Jobbörse).
-  // Bei Bedarf um eine Kontakt-URL/E-Mail des Betreibers ergänzen.
-  readonly userAgent = 'MortimerJobBot/0.1 (+https://github.com/; persönliches Jobsuche-Projekt)';
+  readonly userAgent = 'MortimerAI-Jobpilot/1.3';
 
   protected async fetchRaw(criteria: SearchCriteria): Promise<ArbeitsagenturRawItem[]> {
     const hits = await this.searchJobs(criteria);
@@ -110,7 +108,10 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
 
   private async searchJobs(criteria: SearchCriteria, page = 1): Promise<SearchHit[]> {
     const params = ArbeitsagenturConnector.buildSearchParams(criteria, page);
-    const response = await fetch(`${ArbeitsagenturConnector.BASE_URL}/pc/v6/jobs?${params.toString()}`, {
+    const url = `${ArbeitsagenturConnector.BASE_URL}/pc/v6/jobs?${params.toString()}`;
+    console.log(`[${new Date().toISOString()}] [${this.id}] Suchanfrage: ${url}`);
+
+    const response = await fetch(url, {
       headers: this.headers(),
     });
     if (!response.ok) {
@@ -151,9 +152,6 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
     if (criteria.radiusKm !== undefined) {
       params.set('umkreis', String(criteria.radiusKm));
     }
-    if (criteria.postedWithinDays !== undefined) {
-      params.set('veroeffentlichtseit', String(criteria.postedWithinDays));
-    }
     if (criteria.remote) {
       params.set('homeoffice', 'nv_true');
     }
@@ -170,15 +168,19 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
     }
 
     // Nur ein Wert möglich: erster Treffer aus den angeforderten employmentTypes gewinnt.
-    const angebotsart = (criteria.employmentTypes ?? [])
-      .map((type) => ArbeitsagenturConnector.ANGEBOTSART_BY_EMPLOYMENT_TYPE[type])
-      .find((value) => value !== undefined);
-    if (angebotsart) {
-      params.set('angebotsart', angebotsart);
-    }
+    // Ohne spezifischere Anforderung greift der Standard "1" (ARBEIT) – filtert Ausbildung,
+    // Praktikum/Werkstudent und Selbstständigkeit standardmäßig heraus.
+    const angebotsart =
+      (criteria.employmentTypes ?? [])
+        .map((type) => ArbeitsagenturConnector.ANGEBOTSART_BY_EMPLOYMENT_TYPE[type])
+        .find((value) => value !== undefined) ?? '1';
 
+    params.set('angebotsart', angebotsart);
+    params.set('pav', 'false');
+    params.set('as', 'true');
     params.set('page', String(page));
     params.set('size', String(ArbeitsagenturConnector.PAGE_SIZE));
+    params.set('sort', 'veroeffdatum');
     return params;
   }
 

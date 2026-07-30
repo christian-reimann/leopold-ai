@@ -38,6 +38,17 @@ services:
     volumes:
       - ollama-data:/root/.ollama
 
+  pgweb:
+    image: sosedoff/pgweb:latest
+    restart: unless-stopped
+    ports:
+      - '8081:8081'
+    environment:
+      DATABASE_URL: postgres://mortimer:mortimer@postgres:5432/mortimer?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres-data:
   redis-data:

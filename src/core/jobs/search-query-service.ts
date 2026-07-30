@@ -37,6 +37,24 @@ export class SearchQueryService {
     return row.id;
   }
 
+  async update(
+    searchQueryId: string,
+    input: { criteria: SearchCriteria; interval: NotificationInterval },
+  ): Promise<void> {
+    const [row] = await db
+      .update(searchQueries)
+      .set({ ...input, updatedAt: new Date() })
+      .where(eq(searchQueries.id, searchQueryId))
+      .returning({ active: searchQueries.active });
+    if (!row) {
+      throw new Error(`Suchauftrag nicht gefunden: ${searchQueryId}`);
+    }
+
+    if (row.active) {
+      await jobSearchQueue.scheduleSearchQuery(searchQueryId, input.interval);
+    }
+  }
+
   async setActive(searchQueryId: string, active: boolean): Promise<void> {
     const [row] = await db
       .update(searchQueries)

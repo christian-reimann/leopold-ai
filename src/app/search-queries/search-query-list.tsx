@@ -5,9 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { NotificationInterval, SearchCriteria } from '@/shared/schemas/search-query';
 import { deleteSearchQueryAction, runSearchQueryNowAction, setSearchQueryActiveAction } from './actions';
+import { SearchQueryForm } from './search-query-form';
 
 const INTERVAL_LABELS: Record<NotificationInterval, string> = {
-  instant: 'Sofort (stündlich)',
+  instant: 'Stündlich',
   daily: 'Täglich',
 };
 
@@ -32,14 +33,12 @@ function describeCriteria(criteria: SearchCriteria): string {
   if (criteria.employmentTypes && criteria.employmentTypes.length > 0) {
     parts.push(criteria.employmentTypes.join(', '));
   }
-  if (criteria.postedWithinDays !== undefined) {
-    parts.push(`letzte ${criteria.postedWithinDays} Tage`);
-  }
   return parts.length > 0 ? parts.join(' · ') : 'Keine Kriterien';
 }
 
 export function SearchQueryList({ searchQueries }: { searchQueries: SearchQueryRow[] }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -65,44 +64,64 @@ export function SearchQueryList({ searchQueries }: { searchQueries: SearchQueryR
     <div className="space-y-3">
       {error && <p className="text-sm text-red-600">{error}</p>}
       <ul className="divide-y divide-neutral-200 border border-neutral-200">
-        {searchQueries.map((query) => (
-          <li key={query.id} className="flex items-center justify-between gap-4 px-4 py-3">
-            <div>
-              <p className="text-sm font-medium">{describeCriteria(query.criteria)}</p>
-              <p className="text-xs text-neutral-500">{INTERVAL_LABELS[query.interval]}</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Badge variant={query.active ? 'secondary' : 'outline'}>{query.active ? 'Aktiv' : 'Pausiert'}</Badge>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={isPending && pendingId === query.id}
-                onClick={() => withPending(query.id, () => runSearchQueryNowAction(query.id))}
-              >
-                Jetzt ausführen
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                disabled={isPending && pendingId === query.id}
-                onClick={() => withPending(query.id, () => setSearchQueryActiveAction(query.id, !query.active))}
-              >
-                {query.active ? 'Pausieren' : 'Aktivieren'}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                disabled={isPending && pendingId === query.id}
-                onClick={() => withPending(query.id, () => deleteSearchQueryAction(query.id))}
-              >
-                Löschen
-              </Button>
-            </div>
-          </li>
-        ))}
+        {searchQueries.map((query) =>
+          editingId === query.id ? (
+            <li key={query.id} className="px-4 py-3">
+              <SearchQueryForm
+                searchQueryId={query.id}
+                initial={{ criteria: query.criteria, interval: query.interval }}
+                onSaved={() => setEditingId(null)}
+                onCancel={() => setEditingId(null)}
+              />
+            </li>
+          ) : (
+            <li key={query.id} className="flex items-center justify-between gap-4 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium">{describeCriteria(query.criteria)}</p>
+                <p className="text-xs text-neutral-500">{INTERVAL_LABELS[query.interval]}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge variant={query.active ? 'secondary' : 'outline'}>{query.active ? 'Aktiv' : 'Pausiert'}</Badge>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={isPending && pendingId === query.id}
+                  onClick={() => withPending(query.id, () => runSearchQueryNowAction(query.id))}
+                >
+                  Jetzt ausführen
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  disabled={isPending && pendingId === query.id}
+                  onClick={() => setEditingId(query.id)}
+                >
+                  Bearbeiten
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  disabled={isPending && pendingId === query.id}
+                  onClick={() => withPending(query.id, () => setSearchQueryActiveAction(query.id, !query.active))}
+                >
+                  {query.active ? 'Pausieren' : 'Aktivieren'}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  disabled={isPending && pendingId === query.id}
+                  onClick={() => withPending(query.id, () => deleteSearchQueryAction(query.id))}
+                >
+                  Löschen
+                </Button>
+              </div>
+            </li>
+          ),
+        )}
       </ul>
     </div>
   );
