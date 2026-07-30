@@ -14,3 +14,8 @@ export const EmbedDocumentJobSchema = z.object({
   documentId: z.uuid(),
 });
 export type EmbedDocumentJob = z.infer<typeof EmbedDocumentJobSchema>;
+
+export const RunSearchQueryJobSchema = z.object({
+  searchQueryId: z.uuid(),
+});
+export type RunSearchQueryJob = z.infer<typeof RunSearchQueryJobSchema>;

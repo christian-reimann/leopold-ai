@@ -203,6 +203,30 @@ Playwright-Scraper) **ein Adapter**, der auf dieses Schema mappt. Deduplizierung
 `dedupe_hash`; für Cross-Board-Duplikate ggf. Fuzzy-/Near-Duplicate-Erkennung
 (Embedding-Ähnlichkeit als Kandidat).
 
+### Code-Stil: objektorientiert (Ausnahme: Next.js-Frontend)
+
+Mortimer wird grundsätzlich **objektorientiert** programmiert: Domänenlogik unter
+`core/`, `connectors/`, `llm/` und `worker/` wird in Klassen gekapselt (Services,
+Strategien, Registries), nicht als lose Sammlung freier Funktionen. Etablierte Muster
+im Projekt:
+
+- **Strategy + Registry** für austauschbare Implementierungen (z.B. `connectors/`,
+  `core/documents/parsers/`).
+- **Template Method** für gemeinsames Ablaufgerüst mit variierenden Schritten (z.B.
+  `JobQueue`, `JobWorker`).
+- **Service-Klassen als Singleton-Instanzen** für Domänenlogik ohne Varianten (z.B.
+  `DocumentService`, `JobPostingService`, `SearchQueryService`), exportiert als
+  `export const xyzService = new XyzService();`.
+- Methoden ohne Nutzung von Instanzzustand (`this`) sind `private`; echte Instanzfelder
+  gibt es dort, wo Konfiguration/Abhängigkeiten injizierbar sein sollen (z.B.
+  `EmbeddingClient`, `ProfileExtractor` – Modell/Base-URL per Konstruktor, nicht
+  festverdrahtet).
+
+**Ausnahme:** Der **Next.js-Frontend-Bereich** (`app/`) bleibt **funktional** – das ist
+im Next.js-Ökosystem der etablierte, idiomatische Stil (siehe nächster Abschnitt).
+Server Actions rufen die OOP-Services aus `core/` auf, bleiben selbst aber einfache
+`async function`s statt Klassen.
+
 ### Next.js – bevorzugter Code-Stil (WICHTIG: schlanke Variante)
 
 Es wird **bewusst die schlanke, „server-first" Variante** von Next.js gewünscht –
@@ -367,6 +391,8 @@ const result = await generateText({
 ## 10. Leitsätze (fürs ganze Projekt)
 
 - **Schlank und explizit** vor clever und versteckt (Open-Source-Lesbarkeit).
+- **Objektorientiert außerhalb des Frontends:** Domänenlogik (`core/`, `connectors/`,
+  `llm/`, `worker/`) in Klassen kapseln; `app/` (Next.js) bleibt funktional.
 - **Next.js server-first:** Lesen in `async` Server Components, Schreiben via Server
   Actions – kein unnötiger Client-`fetch`/API-Layer für interne Daten.
 - **Worker macht die schwere Arbeit**, nie der Request-Zyklus.

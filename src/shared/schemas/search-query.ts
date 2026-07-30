@@ -8,7 +8,9 @@ export type NotificationInterval = z.infer<typeof NotificationIntervalSchema>;
 export const SearchCriteriaSchema = z.object({
   keywords: z.array(z.string()),
   location: z.string().optional(),
+  radiusKm: z.number().optional(),
   remote: z.boolean().optional(),
   employmentTypes: z.array(EmploymentTypeSchema).optional(),
+  postedWithinDays: z.number().optional(),
 });
 export type SearchCriteria = z.infer<typeof SearchCriteriaSchema>;

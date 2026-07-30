@@ -1,6 +1,13 @@
 import { z } from 'zod';
 
-export const EmploymentTypeSchema = z.enum(['full_time', 'part_time', 'contract', 'internship']);
+export const EmploymentTypeSchema = z.enum([
+  'full_time',
+  'part_time',
+  'internship',
+  'working_student',
+  'minijob',
+  'freelance',
+]);
 export type EmploymentType = z.infer<typeof EmploymentTypeSchema>;
 
 /**
@@ -14,8 +21,6 @@ export const JobPostingSchema = z.object({
   remote: z.boolean().optional(),
   description: z.string(),
   url: z.url(),
-  salaryMin: z.number().optional(),
-  salaryMax: z.number().optional(),
   employmentType: EmploymentTypeSchema.optional(),
   postedAt: z.iso.datetime().optional(),
 });

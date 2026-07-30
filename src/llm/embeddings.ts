@@ -8,39 +8,49 @@
  * Aufruf der nativen Ollama-API einfacher zu lesen als eine zusätzliche
  * Provider-Dependency.
  */
-const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434';
+const DEFAULT_BASE_URL = 'http://localhost:11434';
 const EMBEDDING_MODEL = 'bge-m3';
 
 interface OllamaEmbedResponse {
   embeddings: number[][];
 }
 
-async function callOllamaEmbed(input: string[]): Promise<number[][]> {
-  const response = await fetch(`${OLLAMA_BASE_URL}/api/embed`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: EMBEDDING_MODEL, input }),
-  });
+export class EmbeddingClient {
+  private readonly baseUrl: string;
 
-  if (!response.ok) {
-    throw new Error(`Ollama-Embedding fehlgeschlagen (${response.status}): ${await response.text()}`);
+  constructor(baseUrl: string = process.env.OLLAMA_BASE_URL ?? DEFAULT_BASE_URL) {
+    this.baseUrl = baseUrl;
   }
 
-  const { embeddings } = (await response.json()) as OllamaEmbedResponse;
-  return embeddings;
+  async embedTexts(texts: string[]): Promise<number[][]> {
+    if (texts.length === 0) {
+      return [];
+    }
+    return this.callOllamaEmbed(texts);
+  }
+
+  async embedText(text: string): Promise<number[]> {
+    const [embedding] = await this.callOllamaEmbed([text]);
+    if (!embedding) {
+      throw new Error('Ollama hat kein Embedding zurückgegeben');
+    }
+    return embedding;
+  }
+
+  private async callOllamaEmbed(input: string[]): Promise<number[][]> {
+    const response = await fetch(`${this.baseUrl}/api/embed`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: EMBEDDING_MODEL, input }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ollama-Embedding fehlgeschlagen (${response.status}): ${await response.text()}`);
+    }
+
+    const { embeddings } = (await response.json()) as OllamaEmbedResponse;
+    return embeddings;
+  }
 }
 
-export async function embedTexts(texts: string[]): Promise<number[][]> {
-  if (texts.length === 0) {
-    return [];
-  }
-  return callOllamaEmbed(texts);
-}
-
-export async function embedText(text: string): Promise<number[]> {
-  const [embedding] = await callOllamaEmbed([text]);
-  if (!embedding) {
-    throw new Error('Ollama hat kein Embedding zurückgegeben');
-  }
-  return embedding;
-}
+export const embeddingClient = new EmbeddingClient();

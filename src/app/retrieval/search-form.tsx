@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import type { ChunkSearchResult } from '@/core/documents/search-chunks';
+import type { ChunkSearchResult } from '@/core/documents/document-service';
 import { searchChunksAction } from './actions';
 
 const TYPE_LABELS: Record<string, string> = {

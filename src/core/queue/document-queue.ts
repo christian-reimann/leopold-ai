@@ -1,6 +1,5 @@
-import { Queue } from 'bullmq';
 import { EmbedDocumentJobSchema, ExtractProfileJobSchema, ParseDocumentJobSchema } from '@/shared/schemas/jobs';
-import { redisConnection } from './connection';
+import { JobQueue } from './job-queue';
 
 export const DOCUMENT_JOB_NAMES = {
   PARSE_DOCUMENT: 'parse-document',
@@ -8,21 +7,28 @@ export const DOCUMENT_JOB_NAMES = {
   EMBED_DOCUMENT: 'embed-document',
 } as const;
 
-export const documentQueue = new Queue('documents', {
-  connection: redisConnection,
-});
+const DOCUMENT_JOB_SCHEMAS = {
+  [DOCUMENT_JOB_NAMES.PARSE_DOCUMENT]: ParseDocumentJobSchema,
+  [DOCUMENT_JOB_NAMES.EXTRACT_PROFILE]: ExtractProfileJobSchema,
+  [DOCUMENT_JOB_NAMES.EMBED_DOCUMENT]: EmbedDocumentJobSchema,
+} as const;
 
-export async function enqueueParseDocument(documentId: string) {
-  const payload = ParseDocumentJobSchema.parse({ documentId });
-  await documentQueue.add(DOCUMENT_JOB_NAMES.PARSE_DOCUMENT, payload);
+class DocumentQueue extends JobQueue<typeof DOCUMENT_JOB_SCHEMAS> {
+  constructor() {
+    super('documents', DOCUMENT_JOB_SCHEMAS);
+  }
+
+  async enqueueParseDocument(documentId: string): Promise<void> {
+    await this.enqueue(DOCUMENT_JOB_NAMES.PARSE_DOCUMENT, { documentId });
+  }
+
+  async enqueueExtractProfile(documentIds: string[]): Promise<void> {
+    await this.enqueue(DOCUMENT_JOB_NAMES.EXTRACT_PROFILE, { documentIds });
+  }
+
+  async enqueueEmbedDocument(documentId: string): Promise<void> {
+    await this.enqueue(DOCUMENT_JOB_NAMES.EMBED_DOCUMENT, { documentId });
+  }
 }
 
-export async function enqueueExtractProfile(documentIds: string[]) {
-  const payload = ExtractProfileJobSchema.parse({ documentIds });
-  await documentQueue.add(DOCUMENT_JOB_NAMES.EXTRACT_PROFILE, payload);
-}
-
-export async function enqueueEmbedDocument(documentId: string) {
-  const payload = EmbedDocumentJobSchema.parse({ documentId });
-  await documentQueue.add(DOCUMENT_JOB_NAMES.EMBED_DOCUMENT, payload);
-}
+export const documentQueue = new DocumentQueue();

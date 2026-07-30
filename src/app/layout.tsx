@@ -27,6 +27,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <a href="/retrieval" className="text-neutral-600 hover:text-neutral-900">
               Retrieval
             </a>
+            <a href="/search-queries" className="text-neutral-600 hover:text-neutral-900">
+              Suchaufträge
+            </a>
           </nav>
         </header>
         <main className="mx-auto max-w-4xl px-6 py-8">{children}</main>

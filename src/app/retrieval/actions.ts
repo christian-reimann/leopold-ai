@@ -1,11 +1,11 @@
 'use server';
 
 import { z } from 'zod';
-import { searchDocumentChunks, type ChunkSearchResult } from '@/core/documents/search-chunks';
+import { documentService, type ChunkSearchResult } from '@/core/documents/document-service';
 
 const SearchInputSchema = z.string().trim().min(1);
 
 export async function searchChunksAction(query: string): Promise<ChunkSearchResult[]> {
   const value = SearchInputSchema.parse(query);
-  return searchDocumentChunks(value);
+  return documentService.searchDocumentChunks(value);
 }

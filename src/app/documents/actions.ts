@@ -6,8 +6,8 @@ import path from 'node:path';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { isSupportedDocumentExtension } from '@/core/documents/parse';
-import { enqueueExtractProfile, enqueueParseDocument } from '@/core/queue/document-queue';
+import { documentService } from '@/core/documents/document-service';
+import { documentQueue } from '@/core/queue/document-queue';
 import { db } from '@/db/client';
 import { documents } from '@/db/schema/documents';
 import { DocumentTypeSchema } from '@/shared/schemas/document';
@@ -26,7 +26,7 @@ export async function uploadDocument(formData: FormData): Promise<void> {
   });
 
   const extension = path.extname(file.name).toLowerCase();
-  if (!isSupportedDocumentExtension(extension)) {
+  if (!documentService.isSupportedDocumentExtension(extension)) {
     throw new Error(`Nicht unterstütztes Dateiformat: ${extension}`);
   }
 
@@ -42,7 +42,7 @@ export async function uploadDocument(formData: FormData): Promise<void> {
     throw new Error('Dokument konnte nicht angelegt werden');
   }
 
-  await enqueueParseDocument(document.id);
+  await documentQueue.enqueueParseDocument(document.id);
   revalidatePath('/documents');
 }
 
@@ -50,7 +50,7 @@ const DocumentIdSchema = z.uuid();
 
 export async function extractProfileAction(documentIds: string[]): Promise<void> {
   const ids = z.array(DocumentIdSchema).min(1).parse(documentIds);
-  await enqueueExtractProfile(ids);
+  await documentQueue.enqueueExtractProfile(ids);
   revalidatePath('/documents');
 }
 
