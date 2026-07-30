@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { profiles } from '@/db/schema/profiles';
+import { embeddingClient } from '@/llm/embeddings';
 import type { Profile } from '@/shared/schemas/profile';
 
 export class ProfileService {
@@ -15,13 +16,15 @@ export class ProfileService {
    * (siehe `beginExtraction`/`completeExtraction`) überschreibt das wieder mit "extracted".
    */
   async upsertManualProfile(id: string | undefined, data: Profile): Promise<void> {
+    const embedding = await embeddingClient.embedText(this.embeddingInput(data));
+
     if (id) {
       await db
         .update(profiles)
-        .set({ data, source: 'manual', updatedAt: new Date() })
+        .set({ data, source: 'manual', embedding, updatedAt: new Date() })
         .where(eq(profiles.id, id));
     } else {
-      await db.insert(profiles).values({ data, source: 'manual' });
+      await db.insert(profiles).values({ data, source: 'manual', embedding });
     }
   }
 
@@ -50,17 +53,25 @@ export class ProfileService {
   }
 
   async completeExtraction(profileId: string, data: Profile): Promise<void> {
+    const embedding = await embeddingClient.embedText(this.embeddingInput(data));
     await db
       .update(profiles)
-      .set({ data, source: 'extracted', status: 'done', error: null, updatedAt: new Date() })
+      .set({ data, source: 'extracted', status: 'done', error: null, embedding, updatedAt: new Date() })
       .where(eq(profiles.id, profileId));
   }
 
   async failExtraction(profileId: string, error: string): Promise<void> {
-    await db
-      .update(profiles)
-      .set({ status: 'failed', error, updatedAt: new Date() })
-      .where(eq(profiles.id, profileId));
+    await db.update(profiles).set({ status: 'failed', error, updatedAt: new Date() }).where(eq(profiles.id, profileId));
+  }
+
+  private embeddingInput(data: Profile): string {
+    const skills = data.skills.flatMap((category) => category.skills).join(', ');
+    const experiences = data.experiences
+      .map((experience) => `${experience.role}: ${experience.description}`)
+      .join('\n');
+    const education = data.education.map((entry) => `${entry.degree}: ${entry.description}`).join('\n');
+    const languages = data.languages.map((language) => language.language).join(', ');
+    return [data.role, skills, experiences, education, languages].join('\n');
   }
 }
 

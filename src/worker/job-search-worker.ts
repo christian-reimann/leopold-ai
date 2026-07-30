@@ -2,6 +2,7 @@ import type { Job } from 'bullmq';
 import { connectorRegistry } from '@/connectors/registered-connectors';
 import { jobPostingService } from '@/core/jobs/jobposting-service';
 import { searchQueryService } from '@/core/jobs/search-query-service';
+import { matchingService } from '@/core/matching/matching-service';
 import { JOB_SEARCH_JOB_NAMES } from '@/core/queue/job-search-queue';
 import { RunSearchQueryJobSchema } from '@/shared/schemas/jobs';
 import { JobWorker } from './job-worker';
@@ -19,7 +20,10 @@ export class JobSearchWorker extends JobWorker<typeof JOB_SEARCH_JOB_NAMES> {
 
     for (const connector of connectorRegistry.getAll()) {
       const results = await connector.search(criteria);
-      await jobPostingService.ingestConnectorResults(connector.id, results);
+      const newCanonicalIds = await jobPostingService.ingestConnectorResults(connector.id, results);
+      for (const jobId of newCanonicalIds) {
+        await matchingService.matchJob(jobId);
+      }
     }
   }
 }

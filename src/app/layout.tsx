@@ -30,6 +30,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <a href="/search-queries" className="text-neutral-600 hover:text-neutral-900">
               Suchaufträge
             </a>
+            <a href="/matches" className="text-neutral-600 hover:text-neutral-900">
+              Matches
+            </a>
           </nav>
         </header>
         <main className="mx-auto max-w-4xl px-6 py-8">{children}</main>

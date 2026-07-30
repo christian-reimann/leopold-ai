@@ -310,12 +310,19 @@ lesbar für Open-Source-Mitwirkende.
   Cosine-Similarity über den in Phase 0 angelegten HNSW-Index)
 - Retrieval-Testseite unter `/retrieval` zum Ausprobieren/Verstehen der Suche
 
-**Phase 3 – Connector + Job-Ingestion (Feature 4 + Teil 2)**
+**Phase 3 – Connector + Job-Ingestion (Feature 4 + Teil 2)** ✅ abgeschlossen
 
-- Einheitliches `JobPosting`-Schema + erster Adapter (eine öffentliche API oder
-  ein Playwright-Scraper)
-- Dedup, Persistierung, Embeddings für Jobs
-- Suchaufträge + BullMQ Repeatable Jobs
+- Einheitliches `JobPosting`-Schema + erster Adapter: Arbeitsagentur-API
+  (`src/connectors/impl/arbeitsagentur-connector.ts`), Registry für weitere
+  Connectors (`src/connectors/registry.ts`)
+- Dedup zweistufig: `dedupe_hash` pro Connector-Quelle (Re-Poll aktualisiert
+  Inhalte) + Near-Duplicate-Erkennung über Embedding-Cosine-Similarity gegen
+  kanonische Postings (`src/core/jobs/jobposting-service.ts`)
+- Persistierung inkl. Embeddings für Jobs (`job_postings`-Tabelle, HNSW-Index)
+- Suchaufträge (`src/core/jobs/search-query-service.ts`, UI unter
+  `/search-queries`) + BullMQ Job Scheduler für wiederkehrende Läufe
+  (`src/core/queue/job-search-queue.ts`, Worker: `job-search-worker.ts`),
+  Intervalle instant (stündlich, da kein Push von den Quellen) / daily
 
 **Phase 4 – Matching (Lernziele 1+2)**
 

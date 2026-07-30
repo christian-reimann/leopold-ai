@@ -1,5 +1,6 @@
 import { PROFILE_SOURCES, PROFILE_STATUSES, type Profile } from '@/shared/schemas/profile';
-import { jsonb, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { jsonb, pgEnum, pgTable, text, timestamp, uuid, vector } from 'drizzle-orm/pg-core';
+import { EMBEDDING_DIMENSIONS } from '@/db/constants';
 
 export const profileSourceEnum = pgEnum('profile_source', PROFILE_SOURCES);
 export const profileStatusEnum = pgEnum('profile_status', PROFILE_STATUSES);
@@ -10,6 +11,7 @@ export const profiles = pgTable('profiles', {
   source: profileSourceEnum('source').notNull(),
   status: profileStatusEnum('status').notNull().default('pending'),
   error: text('error'),
+  embedding: vector('embedding', { dimensions: EMBEDDING_DIMENSIONS }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

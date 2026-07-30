@@ -19,17 +19,30 @@ export class JobPostingService {
       .select()
       .from(jobPostings)
       .where(isNull(jobPostings.duplicateOfId))
-      .orderBy(sql`${jobPostings.data}->>'postedAt' DESC NULLS LAST`)
+      .orderBy(sql`${jobPostings.data}->>'postedAt' DESC NULLS LAST`, desc(jobPostings.id))
       .limit(limit);
   }
 
-  async ingestConnectorResults(connectorId: string, results: ConnectorResult[]): Promise<void> {
-    for (const result of results) {
-      await this.ingestOne(connectorId, result);
+  async getById(jobId: string): Promise<typeof jobPostings.$inferSelect> {
+    const [posting] = await db.select().from(jobPostings).where(eq(jobPostings.id, jobId));
+    if (!posting) {
+      throw new Error(`Job-Posting nicht gefunden: ${jobId}`);
     }
+    return posting;
   }
 
-  private async ingestOne(connectorId: string, result: ConnectorResult): Promise<void> {
+  async ingestConnectorResults(connectorId: string, results: ConnectorResult[]): Promise<string[]> {
+    const newCanonicalIds: string[] = [];
+    for (const result of results) {
+      const id = await this.ingestOne(connectorId, result);
+      if (id) {
+        newCanonicalIds.push(id);
+      }
+    }
+    return newCanonicalIds;
+  }
+
+  private async ingestOne(connectorId: string, result: ConnectorResult): Promise<string | null> {
     const { sourceId, posting, rawHtml } = result;
     const dedupeHash = this.computeDedupeHash(posting);
 
@@ -45,21 +58,26 @@ export class JobPostingService {
         .update(jobPostings)
         .set({ dedupeHash, rawHtml, data: posting, updatedAt: new Date() })
         .where(eq(jobPostings.id, existing.id));
-      return;
+      return null;
     }
 
     const embedding = await embeddingClient.embedText(this.embeddingInput(posting));
     const duplicateOfId = await this.findNearDuplicate(connectorId, embedding);
 
-    await db.insert(jobPostings).values({
-      sourceConnector: connectorId,
-      sourceId,
-      dedupeHash,
-      duplicateOfId,
-      rawHtml,
-      data: posting,
-      embedding,
-    });
+    const [inserted] = await db
+      .insert(jobPostings)
+      .values({
+        sourceConnector: connectorId,
+        sourceId,
+        dedupeHash,
+        duplicateOfId,
+        rawHtml,
+        data: posting,
+        embedding,
+      })
+      .returning({ id: jobPostings.id });
+
+    return duplicateOfId ? null : (inserted?.id ?? null);
   }
 
   /**
