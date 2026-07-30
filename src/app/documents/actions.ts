@@ -3,13 +3,9 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { documentService } from '@/core/documents/document-service';
-import { documentQueue } from '@/core/queue/document-queue';
-import { db } from '@/db/client';
-import { documents } from '@/db/schema/documents';
 import { DocumentTypeSchema } from '@/shared/schemas/document';
 
 const STORAGE_DIR = path.join(process.cwd(), 'storage', 'uploads');
@@ -35,14 +31,7 @@ export async function uploadDocument(formData: FormData): Promise<void> {
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(path.join(process.cwd(), storagePath), buffer);
 
-  const [document] = await db.insert(documents).values({ type, storagePath }).returning({
-    id: documents.id,
-  });
-  if (!document) {
-    throw new Error('Dokument konnte nicht angelegt werden');
-  }
-
-  await documentQueue.enqueueParseDocument(document.id);
+  await documentService.createDocument({ type, storagePath });
   revalidatePath('/documents');
 }
 
@@ -50,20 +39,18 @@ const DocumentIdSchema = z.uuid();
 
 export async function extractProfileAction(documentIds: string[]): Promise<void> {
   const ids = z.array(DocumentIdSchema).min(1).parse(documentIds);
-  await documentQueue.enqueueExtractProfile(ids);
+  await documentService.requestProfileExtraction(ids);
   revalidatePath('/documents');
 }
 
 export async function removeDocumentAction(documentId: string): Promise<void> {
   const id = DocumentIdSchema.parse(documentId);
 
-  const [document] = await db.select().from(documents).where(eq(documents.id, id));
-  if (!document) {
+  const storagePath = await documentService.deleteDocument(id);
+  if (!storagePath) {
     return;
   }
 
-  await db.delete(documents).where(eq(documents.id, id));
-  await rm(path.join(process.cwd(), document.storagePath), { force: true });
-
+  await rm(path.join(process.cwd(), storagePath), { force: true });
   revalidatePath('/documents');
 }

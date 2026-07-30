@@ -1,13 +1,14 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { cosineDistance, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
+import { profileService } from '@/core/profile/profile-service';
 import { documentQueue } from '@/core/queue/document-queue';
 import { db } from '@/db/client';
 import { documentChunks } from '@/db/schema/document-chunks';
 import { documents } from '@/db/schema/documents';
-import { profiles } from '@/db/schema/profiles';
 import { embeddingClient } from '@/llm/embeddings';
 import { profileExtractor } from '@/llm/profile-extraction';
+import type { DocumentType } from '@/shared/schemas/document';
 import { parserRegistry } from './parsers/registered-parsers';
 
 export interface ChunkSearchResult {
@@ -34,6 +35,35 @@ const TARGET_CHUNK_CHARS = 1500;
 export class DocumentService {
   isSupportedDocumentExtension(extension: string): boolean {
     return parserRegistry.isSupported(extension);
+  }
+
+  async createDocument(input: { type: DocumentType; storagePath: string }): Promise<string> {
+    const [document] = await db.insert(documents).values(input).returning({ id: documents.id });
+    if (!document) {
+      throw new Error('Dokument konnte nicht angelegt werden');
+    }
+
+    await documentQueue.enqueueParseDocument(document.id);
+    return document.id;
+  }
+
+  async requestProfileExtraction(documentIds: string[]): Promise<void> {
+    await documentQueue.enqueueExtractProfile(documentIds);
+  }
+
+  async listAll(): Promise<(typeof documents.$inferSelect)[]> {
+    return db.select().from(documents).orderBy(desc(documents.createdAt));
+  }
+
+  /** Löscht die DB-Zeile und gibt den `storagePath` zurück, damit der Aufrufer die Datei entfernen kann. */
+  async deleteDocument(documentId: string): Promise<string | undefined> {
+    const [document] = await db.select().from(documents).where(eq(documents.id, documentId));
+    if (!document) {
+      return undefined;
+    }
+
+    await db.delete(documents).where(eq(documents.id, documentId));
+    return document.storagePath;
   }
 
   async parseDocumentById(documentId: string): Promise<void> {
@@ -127,24 +157,7 @@ export class DocumentService {
   }
 
   async extractProfileFromDocuments(documentIds: string[]): Promise<void> {
-    const [existing] = await db.select({ id: profiles.id }).from(profiles).limit(1);
-    let profileId: string;
-    if (existing) {
-      profileId = existing.id;
-      await db
-        .update(profiles)
-        .set({ status: 'processing', error: null, updatedAt: new Date() })
-        .where(eq(profiles.id, profileId));
-    } else {
-      const [created] = await db
-        .insert(profiles)
-        .values({ source: 'extracted', status: 'processing' })
-        .returning({ id: profiles.id });
-      if (!created) {
-        throw new Error('Profil konnte nicht angelegt werden');
-      }
-      profileId = created.id;
-    }
+    const profileId = await profileService.beginExtraction();
 
     try {
       const docs = await db.select().from(documents).where(inArray(documents.id, documentIds));
@@ -164,19 +177,12 @@ export class DocumentService {
 
       const profileData = await profileExtractor.extractProfile(combinedText);
 
-      await db
-        .update(profiles)
-        .set({ data: profileData, source: 'extracted', status: 'done', error: null, updatedAt: new Date() })
-        .where(eq(profiles.id, profileId));
+      await profileService.completeExtraction(profileId, profileData);
     } catch (error) {
-      await db
-        .update(profiles)
-        .set({
-          status: 'failed',
-          error: error instanceof Error ? error.message : 'Unbekannter Fehler bei der Profil-Extraktion',
-          updatedAt: new Date(),
-        })
-        .where(eq(profiles.id, profileId));
+      await profileService.failExtraction(
+        profileId,
+        error instanceof Error ? error.message : 'Unbekannter Fehler bei der Profil-Extraktion',
+      );
       throw error;
     }
   }

@@ -36,7 +36,7 @@ export default tseslint.config(
             zone('connectors', ['db', 'llm', 'core', 'worker', 'app']),
             zone('core', ['connectors', 'worker', 'app']),
             zone('worker', ['app']),
-            zone('app', ['llm', 'connectors', 'worker']),
+            zone('app', ['llm', 'connectors', 'worker', 'db']),
           ],
         },
       ],

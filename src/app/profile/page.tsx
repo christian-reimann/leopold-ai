@@ -1,5 +1,4 @@
-import { db } from '@/db/client';
-import { profiles } from '@/db/schema/profiles';
+import { profileService } from '@/core/profile/profile-service';
 import type { Profile } from '@/shared/schemas/profile';
 import { ProfileForm } from './profile-form';
 
@@ -18,7 +17,7 @@ const EMPTY_PROFILE: Profile = {
 };
 
 export default async function ProfilePage() {
-  const [profile] = await db.select().from(profiles).limit(1);
+  const profile = await profileService.getActiveProfile();
 
   return (
     <div className="space-y-6">

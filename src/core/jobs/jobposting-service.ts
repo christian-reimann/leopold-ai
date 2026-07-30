@@ -14,6 +14,15 @@ import type { JobPosting } from '@/shared/schemas/job-posting';
 const DUPLICATE_SIMILARITY_THRESHOLD = 0.95;
 
 export class JobPostingService {
+  async listRecentCanonical(limit = 20): Promise<(typeof jobPostings.$inferSelect)[]> {
+    return db
+      .select()
+      .from(jobPostings)
+      .where(isNull(jobPostings.duplicateOfId))
+      .orderBy(desc(jobPostings.createdAt))
+      .limit(limit);
+  }
+
   async ingestConnectorResults(connectorId: string, results: ConnectorResult[]): Promise<void> {
     for (const result of results) {
       await this.ingestOne(connectorId, result);

@@ -1,15 +1,10 @@
-import { desc } from 'drizzle-orm';
-import { db } from '@/db/client';
-import { documents } from '@/db/schema/documents';
-import { profiles } from '@/db/schema/profiles';
+import { documentService } from '@/core/documents/document-service';
+import { profileService } from '@/core/profile/profile-service';
 import { DocumentList } from './document-list';
 import { UploadDropzone } from './upload-dropzone';
 
 export default async function DocumentPage() {
-  const [docs, [profile]] = await Promise.all([
-    db.select().from(documents).orderBy(desc(documents.createdAt)),
-    db.select({ status: profiles.status, error: profiles.error }).from(profiles).limit(1),
-  ]);
+  const [docs, profile] = await Promise.all([documentService.listAll(), profileService.getActiveProfile()]);
   const hasPendingDocs = docs.some(
     (doc) =>
       doc.status === 'pending' ||

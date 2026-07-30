@@ -1,20 +1,10 @@
-import { desc, isNull } from 'drizzle-orm';
-import { db } from '@/db/client';
-import { jobPostings } from '@/db/schema/job-postings';
-import { searchQueries } from '@/db/schema/search-queries';
+import { jobPostingService } from '@/core/jobs/jobposting-service';
+import { searchQueryService } from '@/core/jobs/search-query-service';
 import { SearchQueryForm } from './search-query-form';
 import { SearchQueryList } from './search-query-list';
 
 export default async function SearchQueriesPage() {
-  const [queries, postings] = await Promise.all([
-    db.select().from(searchQueries).orderBy(desc(searchQueries.createdAt)),
-    db
-      .select()
-      .from(jobPostings)
-      .where(isNull(jobPostings.duplicateOfId))
-      .orderBy(desc(jobPostings.createdAt))
-      .limit(20),
-  ]);
+  const [queries, postings] = await Promise.all([searchQueryService.listAll(), jobPostingService.listRecentCanonical(20)]);
 
   return (
     <div className="space-y-8">
