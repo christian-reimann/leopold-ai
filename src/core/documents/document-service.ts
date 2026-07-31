@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { cosineDistance, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
+import { desc, eq, inArray } from 'drizzle-orm';
 import { profileService } from '@/core/profile/profile-service';
 import { documentQueue } from '@/core/queue/document-queue';
 import { db } from '@/db/client';
@@ -10,14 +10,6 @@ import { embeddingClient } from '@/llm/embeddings';
 import { profileExtractor } from '@/llm/profile-extraction';
 import type { DocumentType } from '@/shared/schemas/document';
 import { parserRegistry } from './parsers/registered-parsers';
-
-export interface ChunkSearchResult {
-  chunkId: string;
-  documentId: string;
-  documentType: string;
-  content: string;
-  similarity: number;
-}
 
 const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   cv: 'Lebenslauf',
@@ -37,7 +29,7 @@ export class DocumentService {
     return parserRegistry.isSupported(extension);
   }
 
-  async createDocument(input: { type: DocumentType; storagePath: string }): Promise<string> {
+  async createDocument(input: { type: DocumentType; storagePath: string; originalFilename: string }): Promise<string> {
     const [document] = await db.insert(documents).values(input).returning({ id: documents.id });
     if (!document) {
       throw new Error('Dokument konnte nicht angelegt werden');
@@ -53,6 +45,10 @@ export class DocumentService {
 
   async listAll(): Promise<(typeof documents.$inferSelect)[]> {
     return db.select().from(documents).orderBy(desc(documents.createdAt));
+  }
+
+  async updateDocumentType(documentId: string, type: DocumentType): Promise<void> {
+    await db.update(documents).set({ type, updatedAt: new Date() }).where(eq(documents.id, documentId));
   }
 
   /** Löscht die DB-Zeile und gibt den `storagePath` zurück, damit der Aufrufer die Datei entfernen kann. */
@@ -185,28 +181,6 @@ export class DocumentService {
       );
       throw error;
     }
-  }
-
-  async searchDocumentChunks(query: string, limit = 5): Promise<ChunkSearchResult[]> {
-    const queryEmbedding = await embeddingClient.embedText(query);
-    // Klammer um die Distanz ist nötig: der `<=>`-Operator von pgvector bindet
-    // schwächer als `-`, ohne Klammer würde Postgres `1 - embedding` zuerst
-    // auswerten (Typfehler: integer - vector).
-    const similarity = sql<number>`1 - (${cosineDistance(documentChunks.embedding, queryEmbedding)})`;
-
-    return await db
-      .select({
-        chunkId: documentChunks.id,
-        documentId: documentChunks.documentId,
-        documentType: documents.type,
-        content: documentChunks.content,
-        similarity,
-      })
-      .from(documentChunks)
-      .innerJoin(documents, eq(documents.id, documentChunks.documentId))
-      .where(isNotNull(documentChunks.embedding))
-      .orderBy(desc(similarity))
-      .limit(limit);
   }
 
   private chunkText(text: string): string[] {

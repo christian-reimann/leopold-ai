@@ -11,20 +11,13 @@ export class ProfileService {
     return profile;
   }
 
-  /**
-   * Manuelles Editieren setzt source auf "manual"; eine erneute Extraktion
-   * (siehe `beginExtraction`/`completeExtraction`) überschreibt das wieder mit "extracted".
-   */
   async upsertManualProfile(id: string | undefined, data: Profile): Promise<void> {
     const embedding = await embeddingClient.embedText(this.embeddingInput(data));
 
     if (id) {
-      await db
-        .update(profiles)
-        .set({ data, source: 'manual', embedding, updatedAt: new Date() })
-        .where(eq(profiles.id, id));
+      await db.update(profiles).set({ data, embedding, updatedAt: new Date() }).where(eq(profiles.id, id));
     } else {
-      await db.insert(profiles).values({ data, source: 'manual', embedding });
+      await db.insert(profiles).values({ data, embedding });
     }
   }
 
@@ -42,10 +35,7 @@ export class ProfileService {
       return existing.id;
     }
 
-    const [created] = await db
-      .insert(profiles)
-      .values({ source: 'extracted', status: 'processing' })
-      .returning({ id: profiles.id });
+    const [created] = await db.insert(profiles).values({ status: 'processing' }).returning({ id: profiles.id });
     if (!created) {
       throw new Error('Profil konnte nicht angelegt werden');
     }
@@ -56,7 +46,7 @@ export class ProfileService {
     const embedding = await embeddingClient.embedText(this.embeddingInput(data));
     await db
       .update(profiles)
-      .set({ data, source: 'extracted', status: 'done', error: null, embedding, updatedAt: new Date() })
+      .set({ data, status: 'done', error: null, embedding, updatedAt: new Date() })
       .where(eq(profiles.id, profileId));
   }
 
@@ -71,7 +61,7 @@ export class ProfileService {
       .join('\n');
     const education = data.education.map((entry) => `${entry.degree}: ${entry.description}`).join('\n');
     const languages = data.languages.map((language) => language.language).join(', ');
-    return [data.role, skills, experiences, education, languages].join('\n');
+    return [data.personal.role, skills, experiences, education, languages].join('\n');
   }
 }
 

@@ -1,9 +1,5 @@
 import { z } from 'zod';
 
-export const PROFILE_SOURCES = ['extracted', 'manual'] as const;
-export const ProfileSourceSchema = z.enum(PROFILE_SOURCES);
-export type ProfileSource = z.infer<typeof ProfileSourceSchema>;
-
 export const PROFILE_STATUSES = ['pending', 'processing', 'done', 'failed'] as const;
 export const ProfileStatusSchema = z.enum(PROFILE_STATUSES);
 export type ProfileStatus = z.infer<typeof ProfileStatusSchema>;
@@ -24,6 +20,14 @@ export const ContactSchema = z.object({
   homepage: z.string().optional(),
 });
 export type Contact = z.infer<typeof ContactSchema>;
+
+export const PersonalSchema = z.object({
+  name: z.string(),
+  role: z.string(),
+  address: AddressSchema,
+  contact: ContactSchema,
+});
+export type Personal = z.infer<typeof PersonalSchema>;
 
 export const ProjectSchema = z.object({
   title: z.string(),
@@ -86,10 +90,7 @@ export const SkillCategorySchema = z.object({
 export type SkillCategory = z.infer<typeof SkillCategorySchema>;
 
 export const ProfileSchema = z.object({
-  name: z.string(),
-  role: z.string(),
-  address: AddressSchema,
-  contact: ContactSchema,
+  personal: PersonalSchema,
   education: z.array(EducationSchema),
   experiences: z.array(ExperienceSchema),
   projects: z.array(ProjectSchema),

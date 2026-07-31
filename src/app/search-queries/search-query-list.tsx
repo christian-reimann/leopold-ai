@@ -1,44 +1,62 @@
 'use client';
 
+import { Plus } from 'lucide-react';
 import { useState, useTransition } from 'react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import type { NotificationInterval, SearchCriteria } from '@/shared/schemas/search-query';
 import { deleteSearchQueryAction, runSearchQueryNowAction, setSearchQueryActiveAction } from './actions';
-import { SearchQueryForm } from './search-query-form';
+import {
+  type DialogTarget,
+  EMPLOYMENT_TYPE_LABELS,
+  SearchQueryDialog,
+  type SearchQueryRow,
+} from './search-query-dialog';
 
 const INTERVAL_LABELS: Record<NotificationInterval, string> = {
   instant: 'Stündlich',
   daily: 'Täglich',
 };
 
-export type SearchQueryRow = {
-  id: string;
-  criteria: SearchCriteria;
-  interval: NotificationInterval;
-  active: boolean;
-};
+function formatKeywords(criteria: SearchCriteria): string {
+  return criteria.keywords.length > 0 ? criteria.keywords.join(', ') : 'Keine Stichwörter';
+}
 
-function describeCriteria(criteria: SearchCriteria): string {
+function formatDetails(query: SearchQueryRow): string {
+  const { criteria } = query;
   const parts: string[] = [];
-  if (criteria.keywords.length > 0) {
-    parts.push(criteria.keywords.join(', '));
-  }
-  if (criteria.location) {
-    parts.push(criteria.radiusKm ? `${criteria.location} (+${criteria.radiusKm}km)` : criteria.location);
+  if (criteria.location && criteria.radiusKm) {
+    parts.push(`${criteria.location} (+${criteria.radiusKm}km)`);
+  } else if (criteria.location) {
+    parts.push(criteria.location);
+  } else if (criteria.radiusKm) {
+    parts.push(`Umkreis ${criteria.radiusKm}km`);
   }
   if (criteria.remote) {
-    parts.push('Remote');
+    parts.push('Nur Remote');
   }
   if (criteria.employmentTypes && criteria.employmentTypes.length > 0) {
-    parts.push(criteria.employmentTypes.join(', '));
+    parts.push(criteria.employmentTypes.map((type) => EMPLOYMENT_TYPE_LABELS[type] ?? type).join(', '));
   }
-  return parts.length > 0 ? parts.join(' · ') : 'Keine Kriterien';
+  parts.push(INTERVAL_LABELS[query.interval]);
+  return parts.join(' · ');
 }
 
 export function SearchQueryList({ searchQueries }: { searchQueries: SearchQueryRow[] }) {
+  const [dialogTarget, setDialogTarget] = useState<DialogTarget | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -56,73 +74,110 @@ export function SearchQueryList({ searchQueries }: { searchQueries: SearchQueryR
     });
   }
 
-  if (searchQueries.length === 0) {
-    return <p className="text-sm text-neutral-500">Noch keine Suchaufträge angelegt.</p>;
-  }
-
   return (
-    <div className="space-y-3">
+    <section className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h1 className="text-lg font-semibold">Suchaufträge</h1>
+        <Button
+          type="button"
+          size="icon-xs"
+          variant="ghost"
+          onClick={() => setDialogTarget({ mode: 'create' })}
+          aria-label="Suchauftrag anlegen"
+        >
+          <Plus className="size-3.5" />
+        </Button>
+      </div>
+
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <ul className="divide-y divide-neutral-200 border border-neutral-200">
-        {searchQueries.map((query) =>
-          editingId === query.id ? (
-            <li key={query.id} className="px-4 py-3">
-              <SearchQueryForm
-                searchQueryId={query.id}
-                initial={{ criteria: query.criteria, interval: query.interval }}
-                onSaved={() => setEditingId(null)}
-                onCancel={() => setEditingId(null)}
-              />
-            </li>
-          ) : (
-            <li key={query.id} className="flex items-center justify-between gap-4 px-4 py-3">
-              <div>
-                <p className="text-sm font-medium">{describeCriteria(query.criteria)}</p>
-                <p className="text-xs text-neutral-500">{INTERVAL_LABELS[query.interval]}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <Badge variant={query.active ? 'secondary' : 'outline'}>{query.active ? 'Aktiv' : 'Pausiert'}</Badge>
-                <Button
+
+      {searchQueries.length === 0 && <p className="text-sm text-neutral-500">Noch keine Suchaufträge angelegt.</p>}
+
+      {searchQueries.length > 0 && (
+        <ul className="divide-y divide-neutral-200">
+          {searchQueries.map((query) => {
+            return (
+              <li key={query.id} className="flex items-center justify-between gap-4 px-4 py-3">
+                <button
                   type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={isPending && pendingId === query.id}
-                  onClick={() => withPending(query.id, () => runSearchQueryNowAction(query.id))}
+                  onClick={() => setDialogTarget({ mode: 'edit', query })}
+                  className="-m-1 flex-1 rounded-md p-1 text-left hover:bg-neutral-50"
                 >
-                  Jetzt ausführen
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  disabled={isPending && pendingId === query.id}
-                  onClick={() => setEditingId(query.id)}
-                >
-                  Bearbeiten
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  disabled={isPending && pendingId === query.id}
-                  onClick={() => withPending(query.id, () => setSearchQueryActiveAction(query.id, !query.active))}
-                >
-                  {query.active ? 'Pausieren' : 'Aktivieren'}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  disabled={isPending && pendingId === query.id}
-                  onClick={() => withPending(query.id, () => deleteSearchQueryAction(query.id))}
-                >
-                  Löschen
-                </Button>
-              </div>
-            </li>
-          ),
-        )}
-      </ul>
-    </div>
+                  <p className="text-base font-medium">
+                    {formatKeywords(query.criteria)}{' '}
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        'h-4 rounded-full px-1.5 py-0 align-middle text-[10px] leading-none',
+                        query.active
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                          : 'border-amber-200 bg-amber-50 text-amber-700',
+                      )}
+                    >
+                      {query.active ? 'Aktiv' : 'Pausiert'}
+                    </Badge>
+                  </p>
+                  <p className="text-sm text-neutral-500">{formatDetails(query)}</p>
+                </button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={isPending && pendingId === query.id}
+                    onClick={() => withPending(query.id, () => runSearchQueryNowAction(query.id))}
+                  >
+                    Jetzt ausführen
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={isPending && pendingId === query.id}
+                    onClick={() => withPending(query.id, () => setSearchQueryActiveAction(query.id, !query.active))}
+                  >
+                    {query.active ? 'Pausieren' : 'Aktivieren'}
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        disabled={isPending && pendingId === query.id}
+                      >
+                        Löschen
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Suchauftrag löschen?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Der Suchauftrag wird endgültig entfernt und läuft nicht mehr im Hintergrund.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => withPending(query.id, () => deleteSearchQueryAction(query.id))}
+                        >
+                          Löschen
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <SearchQueryDialog
+        open={dialogTarget !== null}
+        onOpenChange={(open) => !open && setDialogTarget(null)}
+        target={dialogTarget}
+      />
+    </section>
   );
 }

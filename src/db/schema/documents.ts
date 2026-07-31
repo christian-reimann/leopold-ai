@@ -8,6 +8,7 @@ export const documents = pgTable('documents', {
   id: uuid('id').primaryKey().defaultRandom(),
   type: documentTypeEnum('type').notNull(),
   storagePath: text('storage_path').notNull(),
+  originalFilename: text('original_filename').notNull(),
   extractedText: text('extracted_text'),
   status: documentStatusEnum('status').notNull().default('pending'),
   error: text('error'),

@@ -11,7 +11,13 @@ export class MatchJudge {
     const { output } = await generateText({
       model: this.model,
       output: Output.object({ schema: MatchResultSchema }),
-      prompt: `Schätze ein, wie gut das Profil unten zu den Anforderungen der folgenden Stellenanzeige passt – als Einschätzung der Erfolgschance bei einer Bewerbung. scoreMeToJob: 0-100, wobei 100 bedeutet, dass alle erkennbaren Anforderungen erfüllt werden. reasoning: eine kurze Begründung auf Deutsch.
+      prompt: `Schätze ein, wie gut das Profil unten zu den Anforderungen der folgenden Stellenanzeige passt – als Einschätzung der Erfolgschance bei einer Bewerbung.
+
+        scoreMeToJob: 0-100, wobei 100 bedeutet, dass alle erkennbaren Anforderungen erfüllt werden.
+
+        positives: Stichpunkte auf Deutsch, die für einen Match sprechen (erfüllte Anforderungen, passende Erfahrung/Skills). Jeder Punkt hat ein weight von 1-3 (3 = sehr starkes Argument, 1 = schwaches/nebensächliches Argument).
+
+        negatives: Stichpunkte auf Deutsch, die gegen einen Match sprechen (fehlende Anforderungen, Lücken). Jeder Punkt hat ein weight von 1-3 (3 = schwerwiegend, 1 = geringfügig).
 
         Stellenanzeige:
         Titel: ${posting.title}
@@ -20,7 +26,7 @@ export class MatchJudge {
         ${posting.description}
 
         Profil:
-        Rolle: ${profile.role}
+        Rolle: ${profile.personal.role}
         Skills: ${profile.skills.flatMap((category) => category.skills).join(', ')}
         Berufserfahrung:
         ${profile.experiences.map((experience) => `- ${experience.role} (${experience.startDate}–${experience.endDate ?? 'heute'}): ${experience.description}`).join('\n')}

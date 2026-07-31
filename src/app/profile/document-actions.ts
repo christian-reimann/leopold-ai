@@ -8,16 +8,16 @@ import { z } from 'zod';
 import { documentService } from '@/core/documents/document-service';
 import { DocumentTypeSchema } from '@/shared/schemas/document';
 
+const DocumentIdSchema = z.uuid();
+
 const STORAGE_DIR = path.join(process.cwd(), 'storage', 'uploads');
 
 const UploadDocumentSchema = z.object({
-  type: DocumentTypeSchema,
   file: z.instanceof(File),
 });
 
 export async function uploadDocument(formData: FormData): Promise<void> {
-  const { type, file } = UploadDocumentSchema.parse({
-    type: formData.get('type'),
+  const { file } = UploadDocumentSchema.parse({
     file: formData.get('file'),
   });
 
@@ -31,16 +31,14 @@ export async function uploadDocument(formData: FormData): Promise<void> {
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(path.join(process.cwd(), storagePath), buffer);
 
-  await documentService.createDocument({ type, storagePath });
-  revalidatePath('/documents');
+  await documentService.createDocument({ type: 'cv', storagePath, originalFilename: file.name });
+  revalidatePath('/profile');
 }
-
-const DocumentIdSchema = z.uuid();
 
 export async function extractProfileAction(documentIds: string[]): Promise<void> {
   const ids = z.array(DocumentIdSchema).min(1).parse(documentIds);
   await documentService.requestProfileExtraction(ids);
-  revalidatePath('/documents');
+  revalidatePath('/profile');
 }
 
 export async function removeDocumentAction(documentId: string): Promise<void> {
@@ -52,5 +50,12 @@ export async function removeDocumentAction(documentId: string): Promise<void> {
   }
 
   await rm(path.join(process.cwd(), storagePath), { force: true });
-  revalidatePath('/documents');
+  revalidatePath('/profile');
+}
+
+export async function updateDocumentTypeAction(documentId: string, type: string): Promise<void> {
+  const id = DocumentIdSchema.parse(documentId);
+  const nextType = DocumentTypeSchema.parse(type);
+  await documentService.updateDocumentType(id, nextType);
+  revalidatePath('/profile');
 }

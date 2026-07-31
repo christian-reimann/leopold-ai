@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import { jobPostingService } from '@/core/jobs/jobposting-service';
 import { profileService } from '@/core/profile/profile-service';
 import { db } from '@/db/client';
@@ -7,6 +7,8 @@ import { matches } from '@/db/schema/matches';
 import { matchJudge } from '@/llm/match-judge';
 
 const MATCH_VORFILTER_SIMILARITY_THRESHOLD = 0.3;
+
+export type MatchSortBy = 'score' | 'postedAt';
 
 export class MatchingService {
   async matchJob(jobId: string): Promise<void> {
@@ -23,17 +25,20 @@ export class MatchingService {
     }
 
     const result = await matchJudge.judge(profile.data, job.data);
+    const reasoning = { positives: result.positives, negatives: result.negatives };
 
     await db
       .insert(matches)
-      .values({ jobId, scoreMeToJob: result.scoreMeToJob, reasoning: result.reasoning })
+      .values({ jobId, scoreMeToJob: result.scoreMeToJob, reasoning })
       .onConflictDoUpdate({
         target: matches.jobId,
-        set: { scoreMeToJob: result.scoreMeToJob, reasoning: result.reasoning },
+        set: { scoreMeToJob: result.scoreMeToJob, reasoning },
       });
   }
 
-  async listRecent(limit = 50) {
+  async listRecent(limit = 50, sortBy: MatchSortBy = 'postedAt') {
+    const orderBy = sortBy === 'postedAt' ? desc(sql`${jobPostings.data}->>'postedAt'`) : desc(matches.scoreMeToJob);
+
     return db
       .select({
         id: matches.id,
@@ -46,7 +51,7 @@ export class MatchingService {
       })
       .from(matches)
       .innerJoin(jobPostings, eq(matches.jobId, jobPostings.id))
-      .orderBy(desc(matches.scoreMeToJob))
+      .orderBy(orderBy)
       .limit(limit);
   }
 

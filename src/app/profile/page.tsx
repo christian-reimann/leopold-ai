@@ -1,12 +1,15 @@
+import { documentService } from '@/core/documents/document-service';
 import { profileService } from '@/core/profile/profile-service';
 import type { Profile } from '@/shared/schemas/profile';
-import { ProfileForm } from './profile-form';
+import { ProfilePageBody } from './profile-page-body';
 
 const EMPTY_PROFILE: Profile = {
-  name: '',
-  role: '',
-  address: { street: '', zipcode: '', location: '', country: '' },
-  contact: { email: '', phone: '' },
+  personal: {
+    name: '',
+    role: '',
+    address: { street: '', zipcode: '', location: '', country: '' },
+    contact: { email: '', phone: '' },
+  },
   education: [],
   experiences: [],
   projects: [],
@@ -17,19 +20,34 @@ const EMPTY_PROFILE: Profile = {
 };
 
 export default async function ProfilePage() {
-  const profile = await profileService.getActiveProfile();
+  const [profile, docs] = await Promise.all([profileService.getActiveProfile(), documentService.listAll()]);
+  const hasPendingDocs = docs.some(
+    (doc) =>
+      doc.status === 'pending' ||
+      doc.status === 'processing' ||
+      (doc.status === 'done' && (doc.embeddingStatus === 'pending' || doc.embeddingStatus === 'processing')),
+  );
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-lg font-semibold">Profil</h1>
-        {!profile && (
-          <p className="text-sm text-neutral-500">
-            Noch kein Profil vorhanden – unter Dokumente aus einem Dokument extrahieren oder unten manuell anlegen.
-          </p>
-        )}
-      </div>
-      <ProfileForm profileId={profile?.id} profile={profile?.data ?? EMPTY_PROFILE} />
+      <h1 className="text-lg font-semibold">Mein Profil</h1>
+      <ProfilePageBody
+        hasProfile={Boolean(profile)}
+        profileId={profile?.id}
+        profile={profile?.data ?? EMPTY_PROFILE}
+        profileStatus={profile?.status ?? null}
+        profileError={profile?.error ?? null}
+        docs={docs.map((doc) => ({
+          id: doc.id,
+          name: doc.originalFilename,
+          type: doc.type,
+          status: doc.status,
+          error: doc.error,
+          embeddingStatus: doc.embeddingStatus,
+          embeddingError: doc.embeddingError,
+        }))}
+        hasPendingDocs={hasPendingDocs}
+      />
     </div>
   );
 }
