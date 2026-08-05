@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import './globals.css';
 import { Geist } from 'next/font/google';
+import Link from 'next/link';
+import { AgentPanel } from '@/components/agent/agent-panel';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
@@ -15,23 +17,33 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="de" className={cn('font-sans', geist.variable)}>
-      <body className="min-h-screen bg-white text-neutral-900 antialiased">
+      <body className="h-screen overflow-hidden bg-white text-neutral-900 antialiased">
         <TooltipProvider>
-          <header className="border-b border-neutral-200">
-            <nav className="mx-auto flex max-w-4xl items-center gap-6 px-6 py-4 text-sm font-medium">
-              <span className="font-semibold tracking-tight">Mortimer</span>
-              <a href="/profile" className="text-neutral-600 hover:text-neutral-900">
-                Mein Profil
-              </a>
-              <a href="/search-queries" className="text-neutral-600 hover:text-neutral-900">
-                Suchaufträge
-              </a>
-              <a href="/jobs" className="text-neutral-600 hover:text-neutral-900">
-                Jobs
-              </a>
-            </nav>
-          </header>
-          <main className="mx-auto max-w-4xl px-6 py-8">{children}</main>
+          <div className="flex h-full flex-col">
+            <header className="shrink-0 border-b border-neutral-200">
+              <nav className="mx-auto flex max-w-4xl items-center gap-6 px-6 py-4 text-sm font-medium">
+                <span className="font-semibold tracking-tight">Mortimer</span>
+                <Link href="/profile" className="text-neutral-600 hover:text-neutral-900">
+                  Mein Profil
+                </Link>
+                <Link href="/search-queries" className="text-neutral-600 hover:text-neutral-900">
+                  Suchaufträge
+                </Link>
+                <Link href="/jobs" className="text-neutral-600 hover:text-neutral-900">
+                  Jobs
+                </Link>
+                <Link href="/applications" className="text-neutral-600 hover:text-neutral-900">
+                  Bewerbungen
+                </Link>
+              </nav>
+            </header>
+            <div className="flex min-h-0 flex-1">
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <main className="mx-auto max-w-4xl px-6 py-8">{children}</main>
+              </div>
+              <AgentPanel />
+            </div>
+          </div>
         </TooltipProvider>
       </body>
     </html>

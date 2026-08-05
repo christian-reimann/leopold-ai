@@ -273,8 +273,16 @@ lesbar für Open-Source-Mitwirkende.
   Packen bis zu einer Zielgröße (`src/core/documents/chunk.ts`), kein Overlap –
   Bewerbungsunterlagen sind kurz und bereits in Absätze strukturiert.
 - **Matching-Scoring** im Detail (Gewichtung Embedding / Feld-Match / LLM-Judge).
-- **PDF-Weg:** react-pdf (deklarativ) vs. Puppeteer (HTML→PDF, nutzt Playwright-Wissen).
-- **Storage** für Uploads: lokal (Dev) vs. S3-kompatibel (später).
+- ~~**PDF-Weg**~~ **Entschieden (Phase 5): Puppeteer** (nicht react-pdf). Begründung:
+  TipTap liefert HTML, Puppeteer rendert es 1:1 ohne Übersetzung in eine zweite
+  Komponentensprache (react-pdf hätte eigene Primitiven). "Rendert exakt was im
+  Browser sichtbar ist" passt zum WYSIWYG-Anspruch mit Layout-Vorlagen/Farbthemen.
+- ~~**Storage**~~ **Entschieden (Phase 5): lokal**, unter `storage/` – gleiches
+  Muster wie bei Dokumenten-Uploads (`storage/applications/<id>.pdf`). S3 bleibt
+  eine spätere Option, kein Bedarf für das Lernprojekt.
+- **DOCX/ODT-Export** bewusst **nicht** Teil von Phase 5 (nur PDF). Könnte später
+  separat nachgezogen werden, z.B. via Pandoc als zusätzliche System-Abhängigkeit
+  (HTML→DOCX/ODT), da es dafür kein gutes reines npm-Äquivalent gibt.
 
 ---
 
@@ -324,16 +332,51 @@ lesbar für Open-Source-Mitwirkende.
   (`src/core/queue/job-search-queue.ts`, Worker: `job-search-worker.ts`),
   Intervalle instant (stündlich, da kein Push von den Quellen) / daily
 
-**Phase 4 – Matching (Lernziele 1+2)**
+**Phase 4 – Matching (Lernziele 1+2)** ✅ abgeschlossen
 
-- Embedding-Vorfilter → Feld-Matching → LLM-Judge (hybrid)
-- Bidirektionale Scores + `reasoning` persistieren
+- Embedding-Vorfilter (Cosine-Similarity-Schwellwert) → LLM-Judge (hybrid,
+  `src/llm/match-judge.ts`)
+- Score (`scoreMeToJob`) + `reasoning` (positives/negatives mit Gewichtung)
+  persistiert (`src/core/matching/matching-service.ts`, `matches`-Tabelle)
+- Matching läuft synchron inline im `job-search-worker.ts` direkt nach dem
+  Ingest neuer Postings (kein eigener Queue-Job dafür nötig)
+- `/jobs`-UI zeigt Matches inkl. Score/Reasoning-Tooltip
 
-**Phase 5 – Bewerbungs-Generierung (Feature 3, Lernziele 2+3)**
+**Phase 5 – Mortimer als integrierter AI-Agent + Bewerbungs-Generierung
+(Feature 1+3, Lernziele 2+3)**
 
-- Echtes RAG als Kontext; ggf. erster **echter Agent** (AI SDK `maxSteps`,
-  später evtl. LangGraph.js)
-- TipTap-WYSIWYG, dann PDF-Export
+Deutlich erweiterter Zuschnitt gegenüber der ursprünglichen Idee "RAG + ggf.
+Agent + TipTap + PDF-Export": Mortimer bekommt einen **durchgängig integrierten
+AI-Agenten mit App-weitem Tool-Calling**, nicht nur ein Bewerbungs-Feature.
+
+- **Zentraler Agent-Chat**: feste, persistente Chat-Sidebar (`src/components/agent/`)
+  neben dem Content-Bereich auf jeder Seite, Streaming via AI SDK (`useChat` +
+  `streamText`, `stopWhen: stepCountIs(n)` statt `maxSteps` – das ist der
+  **erste echte Agent** des Projekts, Multi-Step-Tool-Calling statt reinem
+  Structured Output).
+- **Tool-Calling** über bestehende Domänen-Services: Dokumente verwalten,
+  Profil lesen/bearbeiten, Suchaufträge verwalten, Jobsuche anstoßen,
+  Jobinserate auswerten/neu bewerten, Bewerbungen verwalten. Liegt unter
+  `src/core/agent/` (nicht `src/llm/agent/`) – ESLint-Zonenregeln verbieten
+  `llm/ → core/`, und der Agent orchestriert bestehende `core/`-Services.
+  Destruktive Tools (`delete*`) laufen über den `toolApproval`-Mechanismus von
+  AI SDK v7 (harte UI-Bestätigung: Stream pausiert bei einem Tool-Approval-
+  Request, erst ein Klick im Chat löst die Ausführung aus).
+- **Konversationskontext**: eine globale Konversation (Standardkontext) plus
+  eine eigene, isolierte Konversation **pro Bewerbung** (`conversations` +
+  `messages`-Tabellen, `AgentPanel` erkennt den Kontext über `usePathname()`
+  bei `/applications/[id]`).
+- **Bewerbungs-Generierung**: echtes RAG (`src/core/documents/search-chunks.ts`,
+  Cosine-Suche über `document_chunks`) als Kontext aus Lebenslauf/Zertifikaten,
+  kombiniert mit den strukturierten Profildaten. Per Prompt (Agent-Tool)
+  ausgelöst, mit Steuerungsfeldern Tonalität, Persönlichkeit (vordefinierte
+  Presets, Mehrfachauswahl), Sprache (de/en), Layout-Vorlage und Farbschema.
+- **TipTap-WYSIWYG**: Inhalt (Anschreiben/Lebenslauf) editierbar, Layout ist
+  **fix** – Layout-Vorlagen (`src/core/applications/layout/`, Strategy+Registry,
+  MVP: 1 Vorlage) rendern denselben HTML-Output sowohl für die Editor-Vorschau
+  (`<iframe srcDoc>`) als auch für den PDF-Export, echtes WYSIWYG.
+- **PDF-Export** über Puppeteer (HTML→PDF), asynchron über Queue/Worker
+  (`ApplicationQueue`/`ApplicationWorker`, analog zu `DocumentQueue`/`Worker`).
 
 **Phase 6 – Benachrichtigungen (Feature 5)**
 

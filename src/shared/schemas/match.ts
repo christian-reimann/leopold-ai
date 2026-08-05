@@ -17,7 +17,7 @@ export type MatchReasoning = z.infer<typeof MatchReasoningSchema>;
 
 export const MatchResultSchema = z.object({
   scoreMeToJob: z.number().min(0).max(100),
-  positives: z.array(MatchPointSchema),
-  negatives: z.array(MatchPointSchema),
+  positives: z.array(MatchPointSchema).max(4),
+  negatives: z.array(MatchPointSchema).max(4),
 });
 export type MatchResult = z.infer<typeof MatchResultSchema>;

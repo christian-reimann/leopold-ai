@@ -19,3 +19,14 @@ export const RunSearchQueryJobSchema = z.object({
   searchQueryId: z.uuid(),
 });
 export type RunSearchQueryJob = z.infer<typeof RunSearchQueryJobSchema>;
+
+export const GenerateApplicationContentJobSchema = z.object({
+  applicationId: z.uuid(),
+  instructions: z.string().optional(),
+});
+export type GenerateApplicationContentJob = z.infer<typeof GenerateApplicationContentJobSchema>;
+
+export const ExportApplicationPdfJobSchema = z.object({
+  applicationId: z.uuid(),
+});
+export type ExportApplicationPdfJob = z.infer<typeof ExportApplicationPdfJobSchema>;

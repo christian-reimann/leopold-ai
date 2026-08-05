@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
+import { NewApplicationDialog } from '@/app/applications/new-application-dialog';
+import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { MatchSortBy } from '@/core/matching/matching-service';
 import { cn } from '@/lib/utils';
@@ -11,6 +13,7 @@ import type { MatchReasoning } from '@/shared/schemas/match';
 
 export type JobRow = {
   id: string;
+  jobId: string;
   score: number;
   reasoning: MatchReasoning;
   data: JobPosting;
@@ -22,18 +25,36 @@ const SORT_OPTIONS: { value: MatchSortBy; label: string }[] = [
   { value: 'postedAt', label: 'Nach Aktualität' },
 ];
 
+const relativeTimeFormat = new Intl.RelativeTimeFormat('de-DE', { numeric: 'auto' });
+
 function formatPostedAt(postedAt?: string): string | null {
   if (!postedAt) return null;
   const date = new Date(postedAt);
   if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
+
+  const diffDays = Math.max(0, Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24)));
+
+  if (diffDays < 14) {
+    return relativeTimeFormat.format(-diffDays, 'day');
+  }
+  if (diffDays < 60) {
+    return relativeTimeFormat.format(-Math.floor(diffDays / 7), 'week');
+  }
+  return relativeTimeFormat.format(-Math.floor(diffDays / 30), 'month');
 }
 
 export function JobsList({ rows, sortBy }: { rows: JobRow[]; sortBy: MatchSortBy }) {
+  const [applicationTarget, setApplicationTarget] = useState<{ jobId: string; jobTitle: string } | null>(null);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Jobs</h1>
+        <div>
+          <h1 className="text-xl font-semibold">Jobs</h1>
+          <p className="text-sm text-neutral-500">
+            {rows.length === 1 ? '1 Stellenangebot gefunden' : `${rows.length} Stellenangebote gefunden`}
+          </p>
+        </div>
         <div className="flex items-center gap-1 rounded-md border border-neutral-200 p-0.5 text-sm">
           {SORT_OPTIONS.map((option) => (
             <Link
@@ -81,7 +102,9 @@ export function JobsList({ rows, sortBy }: { rows: JobRow[]; sortBy: MatchSortBy
                   </div>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span className="cursor-default text-lg font-semibold">{Math.round(row.score)} %</span>
+                      <span className="cursor-default text-lg font-semibold whitespace-nowrap">
+                        {Math.round(row.score)} %
+                      </span>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-sm flex-col items-start gap-2 py-2 text-left whitespace-normal">
                       <ReasoningList reasoning={row.reasoning} />
@@ -104,10 +127,27 @@ export function JobsList({ rows, sortBy }: { rows: JobRow[]; sortBy: MatchSortBy
                       </Fragment>
                     ))}
                 </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setApplicationTarget({ jobId: row.jobId, jobTitle: row.data.title })}
+                >
+                  Bewerbung erstellen
+                </Button>
               </li>
             );
           })}
         </ul>
+      )}
+
+      {applicationTarget && (
+        <NewApplicationDialog
+          open={true}
+          onOpenChange={(open) => !open && setApplicationTarget(null)}
+          jobId={applicationTarget.jobId}
+          jobTitle={applicationTarget.jobTitle}
+        />
       )}
     </div>
   );
@@ -119,27 +159,21 @@ function ReasoningList({ reasoning }: { reasoning: MatchReasoning }) {
   }
 
   return (
-    <div className="space-y-2">
-      {reasoning.positives.length > 0 && (
-        <ul className="space-y-0.5">
-          {reasoning.positives.map((point, index) => (
-            <li key={index} className="flex gap-1.5">
-              <span className="shrink-0 font-mono text-emerald-400">{'+'.repeat(point.weight)}</span>
-              <span>{point.text}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-      {reasoning.negatives.length > 0 && (
-        <ul className="space-y-0.5">
-          {reasoning.negatives.map((point, index) => (
-            <li key={index} className="flex gap-1.5">
-              <span className="shrink-0 font-mono text-red-400">{'-'.repeat(point.weight)}</span>
-              <span>{point.text}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+    <table className="border-collapse">
+      <tbody>
+        {reasoning.positives.map((point, index) => (
+          <tr key={`positive-${index}`}>
+            <td className="pr-1.5 align-top font-mono text-emerald-400">{'+'.repeat(point.weight)}</td>
+            <td className="align-top">{point.text}</td>
+          </tr>
+        ))}
+        {reasoning.negatives.map((point, index) => (
+          <tr key={`negative-${index}`}>
+            <td className="pr-1.5 align-top font-mono text-red-400">{'-'.repeat(point.weight)}</td>
+            <td className="align-top">{point.text}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

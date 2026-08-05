@@ -15,9 +15,9 @@ export class MatchJudge {
 
         scoreMeToJob: 0-100, wobei 100 bedeutet, dass alle erkennbaren Anforderungen erfüllt werden.
 
-        positives: Stichpunkte auf Deutsch, die für einen Match sprechen (erfüllte Anforderungen, passende Erfahrung/Skills). Jeder Punkt hat ein weight von 1-3 (3 = sehr starkes Argument, 1 = schwaches/nebensächliches Argument).
+        positives: Höchstens 4 Stichpunkte auf Deutsch, die für einen Match sprechen (erfüllte Anforderungen, passende Erfahrung/Skills) – wähle die jeweils relevantesten aus. Jeder Punkt hat ein weight von 1-3 (3 = sehr starkes Argument, 1 = schwaches/nebensächliches Argument).
 
-        negatives: Stichpunkte auf Deutsch, die gegen einen Match sprechen (fehlende Anforderungen, Lücken). Jeder Punkt hat ein weight von 1-3 (3 = schwerwiegend, 1 = geringfügig).
+        negatives: Höchstens 4 Stichpunkte auf Deutsch, die gegen einen Match sprechen (fehlende Anforderungen, Lücken) – wähle die jeweils relevantesten aus. Jeder Punkt hat ein weight von 1-3 (3 = schwerwiegend, 1 = geringfügig).
 
         Stellenanzeige:
         Titel: ${posting.title}

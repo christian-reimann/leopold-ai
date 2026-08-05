@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { useState, useTransition } from 'react';
 import {
   AlertDialog,
@@ -56,20 +56,20 @@ function formatDetails(query: SearchQueryRow): string {
 
 export function SearchQueryList({ searchQueries }: { searchQueries: SearchQueryRow[] }) {
   const [dialogTarget, setDialogTarget] = useState<DialogTarget | null>(null);
-  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ id: string; kind: 'run' | 'toggle' | 'delete' } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function withPending(id: string, action: () => Promise<void>) {
+  function withPending(id: string, kind: 'run' | 'toggle' | 'delete', action: () => Promise<void>) {
     setError(null);
-    setPendingId(id);
+    setPendingAction({ id, kind });
     startTransition(async () => {
       try {
         await action();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Aktion fehlgeschlagen');
       } finally {
-        setPendingId(null);
+        setPendingAction(null);
       }
     });
   }
@@ -124,17 +124,22 @@ export function SearchQueryList({ searchQueries }: { searchQueries: SearchQueryR
                     type="button"
                     size="sm"
                     variant="outline"
-                    disabled={isPending && pendingId === query.id}
-                    onClick={() => withPending(query.id, () => runSearchQueryNowAction(query.id))}
+                    disabled={isPending && pendingAction?.id === query.id}
+                    onClick={() => withPending(query.id, 'run', () => runSearchQueryNowAction(query.id))}
                   >
+                    {isPending && pendingAction?.id === query.id && pendingAction.kind === 'run' && (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    )}
                     Jetzt ausführen
                   </Button>
                   <Button
                     type="button"
                     size="sm"
                     variant="ghost"
-                    disabled={isPending && pendingId === query.id}
-                    onClick={() => withPending(query.id, () => setSearchQueryActiveAction(query.id, !query.active))}
+                    disabled={isPending && pendingAction?.id === query.id}
+                    onClick={() =>
+                      withPending(query.id, 'toggle', () => setSearchQueryActiveAction(query.id, !query.active))
+                    }
                   >
                     {query.active ? 'Pausieren' : 'Aktivieren'}
                   </Button>
@@ -144,7 +149,7 @@ export function SearchQueryList({ searchQueries }: { searchQueries: SearchQueryR
                         type="button"
                         size="sm"
                         variant="destructive"
-                        disabled={isPending && pendingId === query.id}
+                        disabled={isPending && pendingAction?.id === query.id}
                       >
                         Löschen
                       </Button>
@@ -159,7 +164,7 @@ export function SearchQueryList({ searchQueries }: { searchQueries: SearchQueryR
                       <AlertDialogFooter>
                         <AlertDialogCancel>Abbrechen</AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={() => withPending(query.id, () => deleteSearchQueryAction(query.id))}
+                          onClick={() => withPending(query.id, 'delete', () => deleteSearchQueryAction(query.id))}
                         >
                           Löschen
                         </AlertDialogAction>

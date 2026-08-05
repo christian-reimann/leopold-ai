@@ -11,6 +11,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
       sortBy={sortBy}
       rows={rows.map((row) => ({
         id: row.id,
+        jobId: row.jobId,
         score: row.score,
         reasoning: row.reasoning,
         data: row.data,
