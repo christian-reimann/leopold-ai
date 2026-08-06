@@ -1,6 +1,6 @@
 import type { ApplicationColorScheme } from '@/shared/schemas/application';
 import { COLOR_SCHEMES } from './color-schemes';
-import type { LayoutTemplate, RenderDocumentInput } from './layout-template';
+import { DOC_TYPE_LABELS, type LayoutTemplate, type RenderDocumentInput } from './layout-template';
 
 function documentCss(colorScheme: ApplicationColorScheme, root: string): string {
   const { accent, accentSoft } = COLOR_SCHEMES[colorScheme];
@@ -25,7 +25,7 @@ export class StandardLayoutTemplate implements LayoutTemplate {
   readonly id = 'standard' as const;
   readonly label = 'Standard';
 
-  renderDocument({ profile, cvContent, letterContent, colorScheme }: RenderDocumentInput): string {
+  renderDocument({ profile, docType, content, colorScheme }: RenderDocumentInput): string {
     const { name, role, address, contact } = profile.personal;
 
     return `<!doctype html>
@@ -34,7 +34,6 @@ export class StandardLayoutTemplate implements LayoutTemplate {
     <meta charset="utf-8" />
     <style>
       @page { size: A4; margin: 20mm 18mm; }
-      .page-break { page-break-after: always; }
       ${documentCss(colorScheme, 'body')}
     </style>
   </head>
@@ -46,14 +45,9 @@ export class StandardLayoutTemplate implements LayoutTemplate {
       <p>${contact.email} · ${contact.phone}</p>
     </header>
 
-    <section class="page-break">
-      <h2>Anschreiben</h2>
-      ${letterContent}
-    </section>
-
     <section>
-      <h2>Lebenslauf</h2>
-      ${cvContent}
+      <h2>${DOC_TYPE_LABELS[docType]}</h2>
+      ${content}
     </section>
   </body>
 </html>`;

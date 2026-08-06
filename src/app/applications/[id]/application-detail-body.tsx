@@ -1,13 +1,32 @@
 'use client';
 
+import { Download, Loader2, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
+import { DOC_TYPE_LABELS, type DocType } from '@/core/applications/layout/layout-template';
+import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { requestPdfExportAction, regenerateApplicationContentAction, updateApplicationContentAction } from '@/app/applications/actions';
+import {
+  deleteApplicationAction,
+  regenerateApplicationContentAction,
+  updateApplicationContentAction,
+} from '@/app/applications/actions';
 import { ApplicationSettingsDialog } from '@/app/applications/application-settings-dialog';
 import type { ApplicationOptionsValue } from '@/app/applications/application-options-fields';
 import { AutoRefresh } from '@/app/applications/auto-refresh';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Personal } from '@/shared/schemas/profile';
 import type { DocumentStatus } from '@/shared/schemas/document';
 import { TiptapField } from './tiptap-field';
@@ -20,7 +39,6 @@ export function ApplicationDetailBody({
   letterContent,
   options,
   generationStatus,
-  pdfStatus,
   profilePersonal,
   documentStyles,
 }: {
@@ -31,16 +49,15 @@ export function ApplicationDetailBody({
   letterContent: string | null;
   options: ApplicationOptionsValue;
   generationStatus: DocumentStatus;
-  pdfStatus: DocumentStatus;
   profilePersonal: Personal | null;
   documentStyles: string;
 }) {
   const router = useRouter();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [downloadingDoc, setDownloadingDoc] = useState<DocType | null>(null);
 
   const isGenerating = generationStatus === 'pending' || generationStatus === 'processing';
-  const isExportingPdf = pdfStatus === 'processing';
 
   function handleSaveCv(html: string) {
     startTransition(async () => {
@@ -62,15 +79,33 @@ export function ApplicationDetailBody({
     });
   }
 
-  function handleExportPdf() {
+  function handleDelete() {
     startTransition(async () => {
-      await requestPdfExportAction(applicationId);
+      await deleteApplicationAction(applicationId);
+      router.push('/applications');
     });
+  }
+
+  async function handleDownloadPdf(docType: DocType) {
+    setDownloadingDoc(docType);
+    try {
+      const response = await fetch(`/api/applications/${applicationId}/pdf?doc=${docType}`);
+      if (!response.ok) throw new Error('PDF-Export fehlgeschlagen');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${docType === 'cv' ? 'lebenslauf' : 'anschreiben'}-${applicationId}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloadingDoc(null);
+    }
   }
 
   return (
     <div className="space-y-6">
-      <AutoRefresh active={isGenerating || isExportingPdf} />
+      <AutoRefresh active={isGenerating} />
 
       <div className="flex items-center justify-between">
         <div>
@@ -85,45 +120,71 @@ export function ApplicationDetailBody({
           <Button type="button" variant="outline" size="sm" onClick={handleRegenerate} disabled={isPending || isGenerating}>
             Neu generieren
           </Button>
-          {pdfStatus === 'done' ? (
-            <Button type="button" size="sm" asChild>
-              <a href={`/api/applications/${applicationId}/pdf`}>PDF herunterladen</a>
-            </Button>
-          ) : (
-            <Button type="button" size="sm" onClick={handleExportPdf} disabled={isPending || isGenerating || isExportingPdf}>
-              {isExportingPdf ? 'Wird exportiert …' : 'Als PDF exportieren'}
-            </Button>
-          )}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button type="button" variant="ghost" size="icon-sm" disabled={isPending} aria-label="Bewerbung löschen">
+                <Trash2 className="size-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Bewerbung löschen?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Die Bewerbung für „{jobTitle}" bei {company} wird unwiderruflich gelöscht.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                <AlertDialogAction variant="destructive" onClick={handleDelete}>
+                  Löschen
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
+      <style>{documentStyles}</style>
+
       {!isGenerating && (
-        <div className="application-document rounded-md border border-neutral-200 bg-white p-10 shadow-sm">
-          <style>{documentStyles}</style>
+        <Tabs defaultValue="letter">
+          <TabsList>
+            <TabsTrigger value="letter">Anschreiben</TabsTrigger>
+            <TabsTrigger value="cv">Lebenslauf</TabsTrigger>
+          </TabsList>
 
-          {profilePersonal && (
-            <header>
-              <h1>{profilePersonal.name}</h1>
-              <p>{profilePersonal.role}</p>
-              <p>
-                {profilePersonal.address.street}, {profilePersonal.address.zipcode} {profilePersonal.address.location}
-              </p>
-              <p>
-                {profilePersonal.contact.email} · {profilePersonal.contact.phone}
-              </p>
-            </header>
-          )}
+          <TabsContent value="letter">
+            <div className="application-document relative space-y-3 rounded-md border border-neutral-200 bg-white p-10 shadow-sm">
+              <PdfDownloadButton
+                className="absolute right-10 top-10"
+                isDownloading={downloadingDoc === 'letter'}
+                disabled={downloadingDoc !== null}
+                onClick={() => handleDownloadPdf('letter')}
+              />
+              <DocumentHeader personal={profilePersonal} />
+              <section>
+                <h2>{DOC_TYPE_LABELS.letter}</h2>
+                <TiptapField content={letterContent ?? ''} onSave={handleSaveLetter} />
+              </section>
+            </div>
+          </TabsContent>
 
-          <section>
-            <h2>Anschreiben</h2>
-            <TiptapField content={letterContent ?? ''} onSave={handleSaveLetter} />
-          </section>
-
-          <section>
-            <h2>Lebenslauf</h2>
-            <TiptapField content={cvContent ?? ''} onSave={handleSaveCv} />
-          </section>
-        </div>
+          <TabsContent value="cv">
+            <div className="application-document relative space-y-3 rounded-md border border-neutral-200 bg-white p-10 shadow-sm">
+              <PdfDownloadButton
+                className="absolute right-10 top-10"
+                isDownloading={downloadingDoc === 'cv'}
+                disabled={downloadingDoc !== null}
+                onClick={() => handleDownloadPdf('cv')}
+              />
+              <DocumentHeader personal={profilePersonal} />
+              <section>
+                <h2>{DOC_TYPE_LABELS.cv}</h2>
+                <TiptapField content={cvContent ?? ''} onSave={handleSaveCv} />
+              </section>
+            </div>
+          </TabsContent>
+        </Tabs>
       )}
 
       <ApplicationSettingsDialog
@@ -133,5 +194,41 @@ export function ApplicationDetailBody({
         initialOptions={options}
       />
     </div>
+  );
+}
+
+function PdfDownloadButton({
+  className,
+  isDownloading,
+  disabled,
+  onClick,
+}: {
+  className?: string;
+  isDownloading: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Button type="button" variant="outline" size="sm" className={cn('shrink-0', className)} onClick={onClick} disabled={disabled}>
+      {isDownloading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+      Als PDF herunterladen
+    </Button>
+  );
+}
+
+function DocumentHeader({ personal }: { personal: Personal | null }) {
+  if (!personal) return null;
+
+  return (
+    <header>
+      <h1>{personal.name}</h1>
+      <p>{personal.role}</p>
+      <p>
+        {personal.address.street}, {personal.address.zipcode} {personal.address.location}
+      </p>
+      <p>
+        {personal.contact.email} · {personal.contact.phone}
+      </p>
+    </header>
   );
 }

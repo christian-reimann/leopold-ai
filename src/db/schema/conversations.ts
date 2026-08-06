@@ -1,6 +1,6 @@
 import { pgTable, timestamp, uuid } from 'drizzle-orm/pg-core';
 
-// MVP: es gibt genau eine (globale) Konversation, siehe ConversationService.getOrCreateGlobal.
+// MVP: es gibt genau eine (globale) Konversation, siehe ConversationService.getOrCreate.
 export const conversations = pgTable('conversations', {
   id: uuid('id').primaryKey().defaultRandom(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

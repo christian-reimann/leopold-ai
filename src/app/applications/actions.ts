@@ -43,12 +43,6 @@ export async function regenerateApplicationContentAction(applicationId: string, 
   revalidatePath(`/applications/${id}`);
 }
 
-export async function requestPdfExportAction(applicationId: string): Promise<void> {
-  const id = ApplicationIdSchema.parse(applicationId);
-  await applicationService.requestPdfExport(id);
-  revalidatePath(`/applications/${id}`);
-}
-
 export async function deleteApplicationAction(applicationId: string): Promise<void> {
   const id = ApplicationIdSchema.parse(applicationId);
   await applicationService.delete(id);

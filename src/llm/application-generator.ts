@@ -28,6 +28,16 @@ const LANGUAGE_LABELS: Record<ApplicationLanguage, string> = {
 const ALLOWED_HTML_HINT =
   'Gib valides, einfaches HTML zurück (nur die Tags p, ul, li, strong, em, h3 verwenden, keine Inline-Styles, kein <html>/<body>-Wrapper, kein Markdown, keine Code-Fences).';
 
+// Nicht an Anfang/Ende verankert: Claude packt Anschreiben/CV manchmal in einen
+// Code-Fence-Block, hängt aber zusätzlich Prosa davor (Einleitung) oder danach
+// (z.B. eine "**Anmerkung:**" zur eigenen Vorgehensweise) an, die nicht Teil des
+// Dokuments sein soll.
+const CODE_FENCE_PATTERN = /```[a-z]*\n([\s\S]*?)```/i;
+
+function stripCodeFence(text: string): string {
+  return CODE_FENCE_PATTERN.exec(text)?.[1]?.trim() ?? text;
+}
+
 export type ApplicationGenerationInput = {
   profile: Profile;
   job: JobPosting;
@@ -53,7 +63,7 @@ export class ApplicationGenerator {
       ${this.sharedContext(input)}`,
     });
 
-    return text.trim();
+    return stripCodeFence(text.trim());
   }
 
   async generateCv(input: ApplicationGenerationInput): Promise<string> {
@@ -68,7 +78,7 @@ export class ApplicationGenerator {
       ${this.sharedContext(input)}`,
     });
 
-    return text.trim();
+    return stripCodeFence(text.trim());
   }
 
   private sharedInstructions(input: ApplicationGenerationInput): string {

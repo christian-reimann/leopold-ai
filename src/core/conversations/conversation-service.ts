@@ -12,7 +12,7 @@ export class ConversationService {
    * dieselbe Zeile liefern – Client (GET) und Server (POST) könnten sonst auf
    * unterschiedlichen Konversationen landen.
    */
-  async getOrCreateGlobal(): Promise<string> {
+  async getOrCreate(): Promise<string> {
     const [existing] = await db.select({ id: conversations.id }).from(conversations).orderBy(asc(conversations.createdAt)).limit(1);
     if (existing) {
       return existing.id;
@@ -25,8 +25,8 @@ export class ConversationService {
     return created.id;
   }
 
-  async clearGlobal(): Promise<void> {
-    const conversationId = await this.getOrCreateGlobal();
+  async clear(): Promise<void> {
+    const conversationId = await this.getOrCreate();
     await db.delete(messages).where(eq(messages.conversationId, conversationId));
   }
 

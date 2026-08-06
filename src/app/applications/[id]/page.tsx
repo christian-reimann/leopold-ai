@@ -33,7 +33,6 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
         colorScheme: application.colorScheme,
       }}
       generationStatus={application.generationStatus}
-      pdfStatus={application.pdfStatus}
       profilePersonal={profile?.data?.personal ?? null}
       documentStyles={documentStyles}
     />

@@ -25,8 +25,3 @@ export const GenerateApplicationContentJobSchema = z.object({
   instructions: z.string().optional(),
 });
 export type GenerateApplicationContentJob = z.infer<typeof GenerateApplicationContentJobSchema>;
-
-export const ExportApplicationPdfJobSchema = z.object({
-  applicationId: z.uuid(),
-});
-export type ExportApplicationPdfJob = z.infer<typeof ExportApplicationPdfJobSchema>;

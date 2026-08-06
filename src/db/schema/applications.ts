@@ -16,7 +16,6 @@ export const applicationLanguageEnum = pgEnum('application_language', APPLICATIO
 export const applicationLayoutEnum = pgEnum('application_layout', APPLICATION_LAYOUT_IDS);
 export const applicationColorSchemeEnum = pgEnum('application_color_scheme', APPLICATION_COLOR_SCHEMES);
 export const applicationGenerationStatusEnum = pgEnum('application_generation_status', DOCUMENT_STATUSES);
-export const applicationPdfStatusEnum = pgEnum('application_pdf_status', DOCUMENT_STATUSES);
 export const personalityTraitEnum = pgEnum('personality_trait', PERSONALITY_TRAITS);
 
 export const applications = pgTable('applications', {
@@ -34,9 +33,6 @@ export const applications = pgTable('applications', {
   letterContent: text('letter_content'),
   generationStatus: applicationGenerationStatusEnum('generation_status').notNull().default('pending'),
   generationError: text('generation_error'),
-  pdfStatus: applicationPdfStatusEnum('pdf_status').notNull().default('pending'),
-  pdfError: text('pdf_error'),
-  pdfPath: text('pdf_path'),
   status: applicationStatusEnum('status').notNull().default('draft'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

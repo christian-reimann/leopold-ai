@@ -1,5 +1,3 @@
-import { mkdir, writeFile } from 'node:fs/promises';
-import path from 'node:path';
 import { desc, eq, inArray } from 'drizzle-orm';
 import puppeteer from 'puppeteer';
 import { chunkSearchService } from '@/core/documents/search-chunks';
@@ -12,9 +10,9 @@ import { documents } from '@/db/schema/documents';
 import { jobPostings } from '@/db/schema/job-postings';
 import { applicationGenerator } from '@/llm/application-generator';
 import type { ApplicationOptions } from '@/shared/schemas/application';
+import type { DocType } from './layout/layout-template';
 import { layoutTemplateRegistry } from './layout/registered-layouts';
 
-const STORAGE_DIR = path.join(process.cwd(), 'storage', 'applications');
 // RAG-Kontext für die Generierung stammt aus Lebenslauf/Zertifikaten, nicht aus früheren
 // Anschreiben – die sollen ja gerade neu formuliert werden, nicht kopiert.
 const RAG_DOCUMENT_TYPES = ['cv', 'certificate'] as const;
@@ -69,14 +67,6 @@ export class ApplicationService {
       .set({ generationStatus: 'pending', generationError: null, updatedAt: new Date() })
       .where(eq(applications.id, id));
     await applicationQueue.enqueueGenerateContent(id, instructions);
-  }
-
-  async requestPdfExport(id: string): Promise<void> {
-    await db
-      .update(applications)
-      .set({ pdfStatus: 'pending', pdfError: null, updatedAt: new Date() })
-      .where(eq(applications.id, id));
-    await applicationQueue.enqueueExportPdf(id);
   }
 
   async delete(id: string): Promise<void> {
@@ -142,57 +132,33 @@ export class ApplicationService {
     }
   }
 
-  async renderPdf(id: string): Promise<void> {
-    await db
-      .update(applications)
-      .set({ pdfStatus: 'processing', pdfError: null, updatedAt: new Date() })
-      .where(eq(applications.id, id));
+  async renderPdfBuffer(id: string, docType: DocType): Promise<Uint8Array> {
+    const application = await this.getById(id);
+    const content = docType === 'cv' ? application.cvContent : application.letterContent;
+    if (!content) {
+      throw new Error('Inhalt wurde noch nicht generiert');
+    }
 
+    const profile = await profileService.getActiveProfile();
+    if (!profile?.data) {
+      throw new Error('Kein aktives Profil vorhanden');
+    }
+
+    const template = layoutTemplateRegistry.getById(application.layoutTemplate);
+    const html = template.renderDocument({
+      profile: profile.data,
+      docType,
+      content,
+      colorScheme: application.colorScheme,
+    });
+
+    const browser = await puppeteer.launch({ headless: true });
     try {
-      const application = await this.getById(id);
-      if (!application.cvContent || !application.letterContent) {
-        throw new Error('Inhalte wurden noch nicht generiert');
-      }
-
-      const profile = await profileService.getActiveProfile();
-      if (!profile?.data) {
-        throw new Error('Kein aktives Profil vorhanden');
-      }
-
-      const html = layoutTemplateRegistry.getById(application.layoutTemplate).renderDocument({
-        profile: profile.data,
-        cvContent: application.cvContent,
-        letterContent: application.letterContent,
-        colorScheme: application.colorScheme,
-      });
-
-      await mkdir(STORAGE_DIR, { recursive: true });
-      const pdfPath = path.join('storage', 'applications', `${id}.pdf`);
-
-      const browser = await puppeteer.launch({ headless: true });
-      try {
-        const page = await browser.newPage();
-        await page.setContent(html, { waitUntil: 'load' });
-        const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
-        await writeFile(path.resolve(pdfPath), pdfBuffer);
-      } finally {
-        await browser.close();
-      }
-
-      await db
-        .update(applications)
-        .set({ pdfStatus: 'done', pdfPath, updatedAt: new Date() })
-        .where(eq(applications.id, id));
-    } catch (error) {
-      await db
-        .update(applications)
-        .set({
-          pdfStatus: 'failed',
-          pdfError: error instanceof Error ? error.message : 'Unbekannter Fehler beim PDF-Export',
-          updatedAt: new Date(),
-        })
-        .where(eq(applications.id, id));
-      throw error;
+      const page = await browser.newPage();
+      await page.setContent(html, { waitUntil: 'load' });
+      return await page.pdf({ format: 'A4', printBackground: true });
+    } finally {
+      await browser.close();
     }
   }
 

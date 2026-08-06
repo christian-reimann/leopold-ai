@@ -1,11 +1,37 @@
-import { rm } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { mkdir, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { tool, type ToolSet } from 'ai';
 import { z } from 'zod';
+import { discardStagedAttachment, resolveStagedAttachment } from '@/core/documents/chat-attachments';
 import { documentService } from '@/core/documents/document-service';
 import { DocumentTypeSchema } from '@/shared/schemas/document';
 
+const UPLOADS_DIR = path.join(process.cwd(), 'storage', 'uploads');
+
 export const documentTools: ToolSet = {
+  addDocumentToProfile: tool({
+    description:
+      'Übernimmt eine im Chat hochgeladene, angehängte Datei dauerhaft ins Profil (Lebenslauf, Anschreiben oder Zertifikat). Nutze die attachmentId, die beim Hochladen im Chat-Verlauf genannt wurde – frag den Nutzer nach dem gewünschten Dokumenttyp, falls unklar.',
+    inputSchema: z.object({ attachmentId: z.string(), documentType: DocumentTypeSchema }),
+    execute: async ({ attachmentId, documentType }) => {
+      const staged = await resolveStagedAttachment(attachmentId);
+
+      await mkdir(UPLOADS_DIR, { recursive: true });
+      const storagePath = path.join('storage', 'uploads', `${randomUUID()}-${staged.originalFilename}`);
+      await rename(staged.storagePath, path.join(process.cwd(), storagePath));
+
+      const documentId = await documentService.createDocument({
+        type: documentType,
+        storagePath,
+        originalFilename: staged.originalFilename,
+      });
+      await discardStagedAttachment(attachmentId);
+
+      return { success: true, documentId };
+    },
+  }),
+
   listDocuments: tool({
     description: 'Listet alle hochgeladenen Dokumente (Lebenslauf, Anschreiben, Zertifikate) mit Status auf.',
     inputSchema: z.object({}),

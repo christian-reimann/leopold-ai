@@ -11,7 +11,6 @@ export default async function ApplicationsPage() {
         jobTitle: job.title,
         company: job.company,
         generationStatus: application.generationStatus,
-        pdfStatus: application.pdfStatus,
       }))}
     />
   );
