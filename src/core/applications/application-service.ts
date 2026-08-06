@@ -1,4 +1,4 @@
-import { desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import puppeteer from 'puppeteer';
 import { chunkSearchService } from '@/core/documents/search-chunks';
 import { jobPostingService } from '@/core/jobs/jobposting-service';
@@ -18,10 +18,10 @@ import { layoutTemplateRegistry } from './layout/registered-layouts';
 const RAG_DOCUMENT_TYPES = ['cv', 'certificate'] as const;
 
 export class ApplicationService {
-  async create(jobId: string, options: ApplicationOptions): Promise<string> {
+  async create(profileId: string, jobId: string, options: ApplicationOptions): Promise<string> {
     const [application] = await db
       .insert(applications)
-      .values({ jobId, ...options })
+      .values({ profileId, jobId, ...options })
       .returning({ id: applications.id });
     if (!application) {
       throw new Error('Bewerbung konnte nicht angelegt werden');
@@ -39,11 +39,12 @@ export class ApplicationService {
     return application;
   }
 
-  async listAll() {
+  async listAll(profileId: string) {
     return db
       .select({ application: applications, job: jobPostings.data })
       .from(applications)
       .innerJoin(jobPostings, eq(applications.jobId, jobPostings.id))
+      .where(eq(applications.profileId, profileId))
       .orderBy(desc(applications.createdAt));
   }
 
@@ -83,8 +84,8 @@ export class ApplicationService {
       const application = await this.getById(id);
       const [job, profile, ragDocumentIds] = await Promise.all([
         jobPostingService.getById(application.jobId),
-        profileService.getActiveProfile(),
-        this.resolveRagDocumentIds(),
+        profileService.getProfile(application.profileId),
+        this.resolveRagDocumentIds(application.profileId),
       ]);
 
       if (!profile?.data) {
@@ -139,7 +140,7 @@ export class ApplicationService {
       throw new Error('Inhalt wurde noch nicht generiert');
     }
 
-    const profile = await profileService.getActiveProfile();
+    const profile = await profileService.getProfile(application.profileId);
     if (!profile?.data) {
       throw new Error('Kein aktives Profil vorhanden');
     }
@@ -162,11 +163,11 @@ export class ApplicationService {
     }
   }
 
-  private async resolveRagDocumentIds(): Promise<string[]> {
+  private async resolveRagDocumentIds(profileId: string): Promise<string[]> {
     const rows = await db
       .select({ id: documents.id })
       .from(documents)
-      .where(inArray(documents.type, RAG_DOCUMENT_TYPES));
+      .where(and(eq(documents.profileId, profileId), inArray(documents.type, RAG_DOCUMENT_TYPES)));
     return rows.map((row) => row.id);
   }
 }

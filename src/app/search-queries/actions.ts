@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { searchQueryService } from '@/core/jobs/search-query-service';
+import { getActiveProfileId } from '@/core/profile/active-profile';
 import { NotificationIntervalSchema, SearchCriteriaSchema } from '@/shared/schemas/search-query';
 
 const CreateSearchQuerySchema = z.object({
@@ -12,7 +13,8 @@ const CreateSearchQuerySchema = z.object({
 
 export async function createSearchQueryAction(input: unknown): Promise<void> {
   const { criteria, interval } = CreateSearchQuerySchema.parse(input);
-  await searchQueryService.create({ criteria, interval });
+  const profileId = await getActiveProfileId();
+  await searchQueryService.create(profileId, { criteria, interval });
   revalidatePath('/search-queries');
 }
 

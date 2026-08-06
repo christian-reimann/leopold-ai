@@ -11,8 +11,8 @@ const MATCH_VORFILTER_SIMILARITY_THRESHOLD = 0.3;
 export type MatchSortBy = 'score' | 'postedAt';
 
 export class MatchingService {
-  async matchJob(jobId: string): Promise<void> {
-    const [job, profile] = await Promise.all([jobPostingService.getById(jobId), profileService.getActiveProfile()]);
+  async matchJob(jobId: string, profileId: string): Promise<void> {
+    const [job, profile] = await Promise.all([jobPostingService.getById(jobId), profileService.getProfile(profileId)]);
 
     if (!profile?.data || !profile.embedding || !job.embedding) {
       console.log(`[matching] Kein Profil mit Embedding vorhanden, überspringe Job ${jobId}`);
@@ -29,14 +29,14 @@ export class MatchingService {
 
     await db
       .insert(matches)
-      .values({ jobId, scoreMeToJob: result.scoreMeToJob, reasoning })
+      .values({ profileId, jobId, scoreMeToJob: result.scoreMeToJob, reasoning })
       .onConflictDoUpdate({
-        target: matches.jobId,
+        target: [matches.profileId, matches.jobId],
         set: { scoreMeToJob: result.scoreMeToJob, reasoning },
       });
   }
 
-  async listRecent(limit = 50, sortBy: MatchSortBy = 'postedAt') {
+  async listRecent(profileId: string, limit = 50, sortBy: MatchSortBy = 'postedAt') {
     const orderBy = sortBy === 'postedAt' ? desc(sql`${jobPostings.data}->>'postedAt'`) : desc(matches.scoreMeToJob);
 
     return db
@@ -51,6 +51,7 @@ export class MatchingService {
       })
       .from(matches)
       .innerJoin(jobPostings, eq(matches.jobId, jobPostings.id))
+      .where(eq(matches.profileId, profileId))
       .orderBy(orderBy)
       .limit(limit);
   }

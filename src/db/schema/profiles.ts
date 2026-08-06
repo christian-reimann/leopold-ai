@@ -6,6 +6,7 @@ export const profileStatusEnum = pgEnum('profile_status', PROFILE_STATUSES);
 
 export const profiles = pgTable('profiles', {
   id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
   data: jsonb('data').$type<Profile>(),
   status: profileStatusEnum('status').notNull().default('pending'),
   error: text('error'),

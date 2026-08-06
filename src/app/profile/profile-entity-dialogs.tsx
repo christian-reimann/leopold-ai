@@ -27,7 +27,6 @@ type DialogProps = {
   onOpenChange: (open: boolean) => void;
   index: number | null;
   profile: Profile;
-  profileId?: string;
 };
 
 export function ExperienceDialog(props: DialogProps) {

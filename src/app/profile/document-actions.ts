@@ -6,6 +6,7 @@ import path from 'node:path';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { documentService } from '@/core/documents/document-service';
+import { getActiveProfileId } from '@/core/profile/active-profile';
 import { DocumentTypeSchema } from '@/shared/schemas/document';
 
 const DocumentIdSchema = z.uuid();
@@ -31,13 +32,15 @@ export async function uploadDocument(formData: FormData): Promise<void> {
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(path.join(process.cwd(), storagePath), buffer);
 
-  await documentService.createDocument({ type: 'cv', storagePath, originalFilename: file.name });
+  const profileId = await getActiveProfileId();
+  await documentService.createDocument({ profileId, type: 'cv', storagePath, originalFilename: file.name });
   revalidatePath('/profile');
 }
 
 export async function extractProfileAction(documentIds: string[]): Promise<void> {
   const ids = z.array(DocumentIdSchema).min(1).parse(documentIds);
-  await documentService.requestProfileExtraction(ids);
+  const profileId = await getActiveProfileId();
+  await documentService.requestProfileExtraction(ids, profileId);
   revalidatePath('/profile');
 }
 

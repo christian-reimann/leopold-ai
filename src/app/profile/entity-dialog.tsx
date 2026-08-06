@@ -13,7 +13,6 @@ export function EntityDialog<T>({
   onOpenChange,
   title,
   profile,
-  profileId,
   field,
   index,
   emptyItem,
@@ -23,7 +22,6 @@ export function EntityDialog<T>({
   onOpenChange: (open: boolean) => void;
   title: string;
   profile: Profile;
-  profileId?: string;
   field: ArrayField;
   index: number | null;
   emptyItem: T;
@@ -56,7 +54,7 @@ export function EntityDialog<T>({
     startTransition(async () => {
       try {
         const nextList = index !== null ? list.map((entry, i) => (i === index ? item : entry)) : [...list, item];
-        await updateProfile({ id: profileId, ...profile, [field]: nextList });
+        await updateProfile({ ...profile, [field]: nextList });
         onOpenChange(false);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Speichern fehlgeschlagen');
@@ -70,7 +68,7 @@ export function EntityDialog<T>({
     startTransition(async () => {
       try {
         const nextList = list.filter((_, i) => i !== index);
-        await updateProfile({ id: profileId, ...profile, [field]: nextList });
+        await updateProfile({ ...profile, [field]: nextList });
         onOpenChange(false);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Löschen fehlgeschlagen');

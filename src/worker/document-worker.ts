@@ -19,8 +19,8 @@ export class DocumentWorker extends JobWorker<typeof DOCUMENT_JOB_NAMES> {
   }
 
   private async processExtractProfile(job: Job): Promise<void> {
-    const { documentIds } = ExtractProfileJobSchema.parse(job.data);
-    await documentService.extractProfileFromDocuments(documentIds);
+    const { documentIds, profileId } = ExtractProfileJobSchema.parse(job.data);
+    await documentService.extractProfileFromDocuments(documentIds, profileId);
   }
 
   private async processEmbedDocument(job: Job): Promise<void> {

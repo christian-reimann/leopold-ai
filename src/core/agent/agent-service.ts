@@ -26,9 +26,12 @@ export class AgentService {
     applicationId?: string;
   }): Promise<Response> {
     await conversationService.appendMessages(conversationId, [userMessage]);
-    const history = await conversationService.listMessages(conversationId);
+    const [history, profileId] = await Promise.all([
+      conversationService.listMessages(conversationId),
+      conversationService.getProfileId(conversationId),
+    ]);
 
-    const tools = buildAgentTools();
+    const tools = buildAgentTools(profileId);
     const toolApproval: Record<string, ToolApprovalStatus> = Object.fromEntries(
       DESTRUCTIVE_TOOL_NAMES.filter((name) => name in tools).map((name) => [name, 'user-approval']),
     );

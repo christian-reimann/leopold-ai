@@ -12,12 +12,10 @@ export function PersonalDialog({
   open,
   onOpenChange,
   profile,
-  profileId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   profile: Profile;
-  profileId?: string;
 }) {
   const [draft, setDraft] = useState<Personal>(() => profile.personal);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +44,7 @@ export function PersonalDialog({
     setError(null);
     startTransition(async () => {
       try {
-        await updateProfile({ id: profileId, ...profile, personal: draft });
+        await updateProfile({ ...profile, personal: draft });
         onOpenChange(false);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Speichern fehlgeschlagen');

@@ -5,29 +5,31 @@ import { conversations } from '@/db/schema/conversations';
 import { messages } from '@/db/schema/messages';
 
 export class ConversationService {
-  /**
-   * MVP: Einzelnutzer-Tool, es gibt genau eine Konversation für die gesamte App.
-   * `orderBy` ist Pflicht, nicht Kosmetik: ohne sie ist bei mehreren Zeilen (z.B. Altlasten
-   * aus der früheren Pro-Bewerbung-Konversation) nicht garantiert, dass zwei Aufrufe
-   * dieselbe Zeile liefern – Client (GET) und Server (POST) könnten sonst auf
-   * unterschiedlichen Konversationen landen.
-   */
-  async getOrCreate(): Promise<string> {
-    const [existing] = await db.select({ id: conversations.id }).from(conversations).orderBy(asc(conversations.createdAt)).limit(1);
+  /** Jedes Profil hat genau eine Konversation. */
+  async getOrCreate(profileId: string): Promise<string> {
+    const [existing] = await db.select({ id: conversations.id }).from(conversations).where(eq(conversations.profileId, profileId));
     if (existing) {
       return existing.id;
     }
 
-    const [created] = await db.insert(conversations).values({}).returning({ id: conversations.id });
+    const [created] = await db.insert(conversations).values({ profileId }).returning({ id: conversations.id });
     if (!created) {
       throw new Error('Konversation konnte nicht angelegt werden');
     }
     return created.id;
   }
 
-  async clear(): Promise<void> {
-    const conversationId = await this.getOrCreate();
+  async clear(profileId: string): Promise<void> {
+    const conversationId = await this.getOrCreate(profileId);
     await db.delete(messages).where(eq(messages.conversationId, conversationId));
+  }
+
+  async getProfileId(conversationId: string): Promise<string> {
+    const [row] = await db.select({ profileId: conversations.profileId }).from(conversations).where(eq(conversations.id, conversationId));
+    if (!row) {
+      throw new Error(`Konversation nicht gefunden: ${conversationId}`);
+    }
+    return row.profileId;
   }
 
   async listMessages(conversationId: string): Promise<UIMessage[]> {

@@ -1,8 +1,10 @@
 import { applicationService } from '@/core/applications/application-service';
+import { getActiveProfileId } from '@/core/profile/active-profile';
 import { ApplicationsList } from './applications-list';
 
 export default async function ApplicationsPage() {
-  const rows = await applicationService.listAll();
+  const profileId = await getActiveProfileId();
+  const rows = await applicationService.listAll(profileId);
 
   return (
     <ApplicationsList

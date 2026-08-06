@@ -3,6 +3,7 @@ import { mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { CHAT_ATTACHMENTS_DIR } from '@/core/documents/chat-attachments';
 import { documentService } from '@/core/documents/document-service';
+import { getActiveProfileId } from '@/core/profile/active-profile';
 
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
@@ -38,12 +39,13 @@ export async function POST(request: Request): Promise<Response> {
   await mkdir(CHAT_ATTACHMENTS_DIR, { recursive: true });
   await cleanupStale();
 
+  const profileId = await getActiveProfileId();
   const attachmentId = randomUUID();
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(path.join(CHAT_ATTACHMENTS_DIR, `${attachmentId}${extension}`), buffer);
   await writeFile(
     path.join(CHAT_ATTACHMENTS_DIR, `${attachmentId}.json`),
-    JSON.stringify({ originalFilename: file.name, extension }),
+    JSON.stringify({ originalFilename: file.name, extension, profileId }),
   );
 
   return Response.json({ attachmentId, filename: file.name });

@@ -1,4 +1,5 @@
 import { documentService } from '@/core/documents/document-service';
+import { getActiveProfileId } from '@/core/profile/active-profile';
 import { profileService } from '@/core/profile/profile-service';
 import type { Profile } from '@/shared/schemas/profile';
 import { ProfilePageBody } from './profile-page-body';
@@ -20,7 +21,8 @@ const EMPTY_PROFILE: Profile = {
 };
 
 export default async function ProfilePage() {
-  const [profile, docs] = await Promise.all([profileService.getActiveProfile(), documentService.listAll()]);
+  const profileId = await getActiveProfileId();
+  const [profile, docs] = await Promise.all([profileService.getProfile(profileId), documentService.listAll(profileId)]);
   const hasPendingDocs = docs.some(
     (doc) =>
       doc.status === 'pending' ||
@@ -33,7 +35,6 @@ export default async function ProfilePage() {
       <h1 className="text-lg font-semibold">Mein Profil</h1>
       <ProfilePageBody
         hasProfile={Boolean(profile)}
-        profileId={profile?.id}
         profile={profile?.data ?? EMPTY_PROFILE}
         profileStatus={profile?.status ?? null}
         profileError={profile?.error ?? null}

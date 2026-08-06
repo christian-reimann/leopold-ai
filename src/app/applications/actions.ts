@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { applicationService } from '@/core/applications/application-service';
+import { getActiveProfileId } from '@/core/profile/active-profile';
 import { ApplicationOptionsSchema } from '@/shared/schemas/application';
 
 const ApplicationIdSchema = z.uuid();
@@ -14,7 +15,8 @@ const CreateApplicationSchema = z.object({
 
 export async function createApplicationAction(input: unknown): Promise<{ id: string }> {
   const { jobId, options } = CreateApplicationSchema.parse(input);
-  const id = await applicationService.create(jobId, options);
+  const profileId = await getActiveProfileId();
+  const id = await applicationService.create(profileId, jobId, options);
   revalidatePath('/applications');
   return { id };
 }

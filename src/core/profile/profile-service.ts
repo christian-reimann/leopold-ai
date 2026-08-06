@@ -5,41 +5,34 @@ import { embeddingClient } from '@/llm/embeddings';
 import type { Profile } from '@/shared/schemas/profile';
 
 export class ProfileService {
-  /** MVP: Einzelnutzer-Tool, es gibt genau ein aktives Profil (die erste Zeile). */
-  async getActiveProfile(): Promise<typeof profiles.$inferSelect | undefined> {
-    const [profile] = await db.select().from(profiles).limit(1);
+  async getProfile(profileId: string): Promise<typeof profiles.$inferSelect | undefined> {
+    const [profile] = await db.select().from(profiles).where(eq(profiles.id, profileId));
     return profile;
   }
 
-  async upsertManualProfile(id: string | undefined, data: Profile): Promise<void> {
-    const embedding = await embeddingClient.embedText(this.embeddingInput(data));
-
-    if (id) {
-      await db.update(profiles).set({ data, embedding, updatedAt: new Date() }).where(eq(profiles.id, id));
-    } else {
-      await db.insert(profiles).values({ data, embedding });
-    }
+  async listProfiles(): Promise<(typeof profiles.$inferSelect)[]> {
+    return db.select().from(profiles).orderBy(profiles.createdAt);
   }
 
-  /**
-   * Findet das bestehende Profil oder legt eines an, markiert es als "processing" und
-   * gibt die ID zurück. Für `DocumentService.extractProfileFromDocuments`.
-   */
-  async beginExtraction(): Promise<string> {
-    const [existing] = await db.select({ id: profiles.id }).from(profiles).limit(1);
-    if (existing) {
-      await db
-        .update(profiles)
-        .set({ status: 'processing', error: null, updatedAt: new Date() })
-        .where(eq(profiles.id, existing.id));
-      return existing.id;
-    }
-
-    const [created] = await db.insert(profiles).values({ status: 'processing' }).returning({ id: profiles.id });
+  async createProfile(name: string): Promise<string> {
+    const [created] = await db.insert(profiles).values({ name }).returning({ id: profiles.id });
     if (!created) {
       throw new Error('Profil konnte nicht angelegt werden');
     }
     return created.id;
+  }
+
+  async upsertManualProfile(id: string, data: Profile): Promise<void> {
+    const embedding = await embeddingClient.embedText(this.embeddingInput(data));
+    await db.update(profiles).set({ data, embedding, updatedAt: new Date() }).where(eq(profiles.id, id));
+  }
+
+  /** Markiert das Profil als "processing". Für `DocumentService.extractProfileFromDocuments`. */
+  async beginExtraction(profileId: string): Promise<void> {
+    await db
+      .update(profiles)
+      .set({ status: 'processing', error: null, updatedAt: new Date() })
+      .where(eq(profiles.id, profileId));
   }
 
   async completeExtraction(profileId: string, data: Profile): Promise<void> {

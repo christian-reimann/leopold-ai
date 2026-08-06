@@ -5,26 +5,26 @@ import { searchQueries } from '@/db/schema/search-queries';
 import type { NotificationInterval, SearchCriteria } from '@/shared/schemas/search-query';
 
 export class SearchQueryService {
-  async getCriteria(searchQueryId: string): Promise<SearchCriteria> {
+  async getCriteria(searchQueryId: string): Promise<{ criteria: SearchCriteria; profileId: string }> {
     const [row] = await db
-      .select({ criteria: searchQueries.criteria })
+      .select({ criteria: searchQueries.criteria, profileId: searchQueries.profileId })
       .from(searchQueries)
       .where(eq(searchQueries.id, searchQueryId));
 
     if (!row) {
       throw new Error(`Suchauftrag nicht gefunden: ${searchQueryId}`);
     }
-    return row.criteria;
+    return row;
   }
 
-  async listAll(): Promise<(typeof searchQueries.$inferSelect)[]> {
-    return db.select().from(searchQueries).orderBy(desc(searchQueries.createdAt));
+  async listAll(profileId: string): Promise<(typeof searchQueries.$inferSelect)[]> {
+    return db.select().from(searchQueries).where(eq(searchQueries.profileId, profileId)).orderBy(desc(searchQueries.createdAt));
   }
 
-  async create(input: { criteria: SearchCriteria; interval: NotificationInterval }): Promise<string> {
+  async create(profileId: string, input: { criteria: SearchCriteria; interval: NotificationInterval }): Promise<string> {
     const [row] = await db
       .insert(searchQueries)
-      .values({ ...input, active: true })
+      .values({ profileId, ...input, active: true })
       .returning({ id: searchQueries.id });
     if (!row) {
       throw new Error('Suchauftrag konnte nicht angelegt werden');

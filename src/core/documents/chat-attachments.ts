@@ -7,9 +7,10 @@ export type StagedAttachment = {
   storagePath: string;
   originalFilename: string;
   extension: string;
+  profileId: string;
 };
 
-type StagedAttachmentMeta = { originalFilename: string; extension: string };
+type StagedAttachmentMeta = { originalFilename: string; extension: string; profileId: string };
 
 export async function resolveStagedAttachment(attachmentId: string): Promise<StagedAttachment> {
   const metaPath = path.join(CHAT_ATTACHMENTS_DIR, `${attachmentId}.json`);
@@ -24,6 +25,7 @@ export async function resolveStagedAttachment(attachmentId: string): Promise<Sta
     storagePath: path.join(CHAT_ATTACHMENTS_DIR, `${attachmentId}${meta.extension}`),
     originalFilename: meta.originalFilename,
     extension: meta.extension,
+    profileId: meta.profileId,
   };
 }
 

@@ -7,6 +7,7 @@ export type ParseDocumentJob = z.infer<typeof ParseDocumentJobSchema>;
 
 export const ExtractProfileJobSchema = z.object({
   documentIds: z.array(z.uuid()).min(1),
+  profileId: z.uuid(),
 });
 export type ExtractProfileJob = z.infer<typeof ExtractProfileJobSchema>;
 

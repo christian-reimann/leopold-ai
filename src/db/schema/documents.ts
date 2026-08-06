@@ -1,11 +1,15 @@
 import { DOCUMENT_STATUSES, DOCUMENT_TYPES } from '@/shared/schemas/document';
 import { pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { profiles } from './profiles';
 
 export const documentTypeEnum = pgEnum('document_type', DOCUMENT_TYPES);
 export const documentStatusEnum = pgEnum('document_status', DOCUMENT_STATUSES);
 
 export const documents = pgTable('documents', {
   id: uuid('id').primaryKey().defaultRandom(),
+  profileId: uuid('profile_id')
+    .notNull()
+    .references(() => profiles.id, { onDelete: 'cascade' }),
   type: documentTypeEnum('type').notNull(),
   storagePath: text('storage_path').notNull(),
   originalFilename: text('original_filename').notNull(),

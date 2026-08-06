@@ -8,12 +8,15 @@ import { ApplicationDetailBody } from './application-detail-body';
 export default async function ApplicationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const [application, profile] = await Promise.all([applicationService.getById(id), profileService.getActiveProfile()]);
+  const application = await applicationService.getById(id);
   if (!application) {
     notFound();
   }
 
-  const job = await jobPostingService.getById(application.jobId);
+  const [job, profile] = await Promise.all([
+    jobPostingService.getById(application.jobId),
+    profileService.getProfile(application.profileId),
+  ]);
 
   const documentStyles = layoutTemplateRegistry
     .getById(application.layoutTemplate)

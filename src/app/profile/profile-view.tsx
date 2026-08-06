@@ -34,7 +34,7 @@ function indexFor(target: EditTarget | null, kind: Exclude<EditTarget['kind'], '
   return target?.kind === kind ? target.index : null;
 }
 
-export function ProfileView({ profile, profileId }: { profile: Profile; profileId?: string }) {
+export function ProfileView({ profile }: { profile: Profile }) {
   const [target, setTarget] = useState<EditTarget | null>(null);
   const close = () => setTarget(null);
 
@@ -165,56 +165,48 @@ export function ProfileView({ profile, profileId }: { profile: Profile; profileI
         open={target?.kind === 'personal'}
         onOpenChange={(open) => !open && close()}
         profile={profile}
-        profileId={profileId}
       />
       <ExperienceDialog
         open={target?.kind === 'experience'}
         onOpenChange={(open) => !open && close()}
         index={indexFor(target, 'experience')}
         profile={profile}
-        profileId={profileId}
       />
       <EducationDialog
         open={target?.kind === 'education'}
         onOpenChange={(open) => !open && close()}
         index={indexFor(target, 'education')}
         profile={profile}
-        profileId={profileId}
       />
       <ProjectDialog
         open={target?.kind === 'project'}
         onOpenChange={(open) => !open && close()}
         index={indexFor(target, 'project')}
         profile={profile}
-        profileId={profileId}
       />
       <SkillCategoryDialog
         open={target?.kind === 'skillCategory'}
         onOpenChange={(open) => !open && close()}
         index={indexFor(target, 'skillCategory')}
         profile={profile}
-        profileId={profileId}
       />
       <StrengthDialog
         open={target?.kind === 'strength'}
         onOpenChange={(open) => !open && close()}
         index={indexFor(target, 'strength')}
         profile={profile}
-        profileId={profileId}
       />
       <LanguageDialog
         open={target?.kind === 'language'}
         onOpenChange={(open) => !open && close()}
         index={indexFor(target, 'language')}
         profile={profile}
-        profileId={profileId}
       />
       <InterestDialog
         open={target?.kind === 'interest'}
         onOpenChange={(open) => !open && close()}
         index={indexFor(target, 'interest')}
         profile={profile}
-        profileId={profileId}
       />
     </div>
   );

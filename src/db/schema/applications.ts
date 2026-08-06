@@ -9,6 +9,7 @@ import {
 } from '@/shared/schemas/application';
 import { DOCUMENT_STATUSES } from '@/shared/schemas/document';
 import { jobPostings } from './job-postings';
+import { profiles } from './profiles';
 
 export const applicationStatusEnum = pgEnum('application_status', APPLICATION_STATUSES);
 export const applicationToneEnum = pgEnum('application_tone', APPLICATION_TONES);
@@ -20,6 +21,9 @@ export const personalityTraitEnum = pgEnum('personality_trait', PERSONALITY_TRAI
 
 export const applications = pgTable('applications', {
   id: uuid('id').primaryKey().defaultRandom(),
+  profileId: uuid('profile_id')
+    .notNull()
+    .references(() => profiles.id, { onDelete: 'cascade' }),
   jobId: uuid('job_id')
     .notNull()
     .references(() => jobPostings.id, { onDelete: 'cascade' }),

@@ -5,13 +5,13 @@ import { jobTools } from './tools/job-tools';
 import { profileTools } from './tools/profile-tools';
 import { searchQueryTools } from './tools/search-query-tools';
 
-export function buildAgentTools(): ToolSet {
+export function buildAgentTools(profileId: string): ToolSet {
   return {
-    ...documentTools,
-    ...profileTools,
-    ...searchQueryTools,
-    ...jobTools,
-    ...applicationTools,
+    ...documentTools(profileId),
+    ...profileTools(profileId),
+    ...searchQueryTools(profileId),
+    ...jobTools(profileId),
+    ...applicationTools(profileId),
   };
 }
 

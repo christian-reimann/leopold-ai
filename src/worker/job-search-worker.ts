@@ -16,13 +16,13 @@ export class JobSearchWorker extends JobWorker<typeof JOB_SEARCH_JOB_NAMES> {
 
   private async processRunSearchQuery(job: Job): Promise<void> {
     const { searchQueryId } = RunSearchQueryJobSchema.parse(job.data);
-    const criteria = await searchQueryService.getCriteria(searchQueryId);
+    const { criteria, profileId } = await searchQueryService.getCriteria(searchQueryId);
 
     for (const connector of connectorRegistry.getAll()) {
       const results = await connector.search(criteria);
       const newCanonicalIds = await jobPostingService.ingestConnectorResults(connector.id, results);
       for (const jobId of newCanonicalIds) {
-        await matchingService.matchJob(jobId);
+        await matchingService.matchJob(jobId, profileId);
       }
     }
   }

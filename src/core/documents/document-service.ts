@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import { profileService } from '@/core/profile/profile-service';
 import { documentQueue } from '@/core/queue/document-queue';
 import { db } from '@/db/client';
@@ -29,7 +29,12 @@ export class DocumentService {
     return parserRegistry.isSupported(extension);
   }
 
-  async createDocument(input: { type: DocumentType; storagePath: string; originalFilename: string }): Promise<string> {
+  async createDocument(input: {
+    profileId: string;
+    type: DocumentType;
+    storagePath: string;
+    originalFilename: string;
+  }): Promise<string> {
     const [document] = await db.insert(documents).values(input).returning({ id: documents.id });
     if (!document) {
       throw new Error('Dokument konnte nicht angelegt werden');
@@ -39,12 +44,12 @@ export class DocumentService {
     return document.id;
   }
 
-  async requestProfileExtraction(documentIds: string[]): Promise<void> {
-    await documentQueue.enqueueExtractProfile(documentIds);
+  async requestProfileExtraction(documentIds: string[], profileId: string): Promise<void> {
+    await documentQueue.enqueueExtractProfile(documentIds, profileId);
   }
 
-  async listAll(): Promise<(typeof documents.$inferSelect)[]> {
-    return db.select().from(documents).orderBy(desc(documents.createdAt));
+  async listAll(profileId: string): Promise<(typeof documents.$inferSelect)[]> {
+    return db.select().from(documents).where(eq(documents.profileId, profileId)).orderBy(desc(documents.createdAt));
   }
 
   async updateDocumentType(documentId: string, type: DocumentType): Promise<void> {
@@ -152,11 +157,14 @@ export class DocumentService {
     }
   }
 
-  async extractProfileFromDocuments(documentIds: string[]): Promise<void> {
-    const profileId = await profileService.beginExtraction();
+  async extractProfileFromDocuments(documentIds: string[], profileId: string): Promise<void> {
+    await profileService.beginExtraction(profileId);
 
     try {
-      const docs = await db.select().from(documents).where(inArray(documents.id, documentIds));
+      const docs = await db
+        .select()
+        .from(documents)
+        .where(and(inArray(documents.id, documentIds), eq(documents.profileId, profileId)));
 
       const missingIds = documentIds.filter((id) => !docs.some((doc) => doc.id === id));
       if (missingIds.length > 0) {

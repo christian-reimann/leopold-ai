@@ -12,7 +12,6 @@ type Mode = 'documents' | null;
 
 export function ProfilePageBody({
   hasProfile,
-  profileId,
   profile,
   profileStatus,
   profileError,
@@ -20,7 +19,6 @@ export function ProfilePageBody({
   hasPendingDocs,
 }: {
   hasProfile: boolean;
-  profileId?: string;
   profile: Profile;
   profileStatus: ProfileStatus | null;
   profileError: string | null;
@@ -47,14 +45,14 @@ export function ProfilePageBody({
             </Button>
           </div>
         </div>
-        <PersonalDialog open={createOpen} onOpenChange={setCreateOpen} profile={profile} profileId={profileId} />
+        <PersonalDialog open={createOpen} onOpenChange={setCreateOpen} profile={profile} />
       </>
     );
   }
 
   return (
     <div className="space-y-10">
-      {hasProfile && <ProfileView profile={profile} profileId={profileId} />}
+      {hasProfile && <ProfileView profile={profile} />}
 
       {(hasProfile || mode === 'documents') && (
         <section className="space-y-4">
@@ -79,7 +77,7 @@ export function ProfilePageBody({
             </button>
             .
           </p>
-          <PersonalDialog open={createOpen} onOpenChange={setCreateOpen} profile={profile} profileId={profileId} />
+          <PersonalDialog open={createOpen} onOpenChange={setCreateOpen} profile={profile} />
         </>
       )}
     </div>

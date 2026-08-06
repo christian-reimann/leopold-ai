@@ -1,10 +1,14 @@
 import { NOTIFICATION_INTERVALS, type SearchCriteria } from '@/shared/schemas/search-query';
 import { boolean, jsonb, pgEnum, pgTable, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { profiles } from './profiles';
 
 export const notificationIntervalEnum = pgEnum('notification_interval', NOTIFICATION_INTERVALS);
 
 export const searchQueries = pgTable('search_queries', {
   id: uuid('id').primaryKey().defaultRandom(),
+  profileId: uuid('profile_id')
+    .notNull()
+    .references(() => profiles.id, { onDelete: 'cascade' }),
   criteria: jsonb('criteria').$type<SearchCriteria>().notNull(),
   interval: notificationIntervalEnum('interval').notNull(),
   active: boolean('active').notNull().default(true),

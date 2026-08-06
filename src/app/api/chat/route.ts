@@ -2,6 +2,7 @@ import type { UIMessage } from 'ai';
 import { z } from 'zod';
 import { agentService } from '@/core/agent/agent-service';
 import { conversationService } from '@/core/conversations/conversation-service';
+import { getActiveProfileId } from '@/core/profile/active-profile';
 
 // `messages` kommt vom useChat-Client (Default-Transport schickt den kompletten lokalen
 // Nachrichtenverlauf mit) – server-autoritativ wird trotzdem nur die letzte (neue)
@@ -15,7 +16,8 @@ export async function POST(request: Request): Promise<Response> {
   const { messages, applicationId } = ChatRequestSchema.parse(await request.json());
   const userMessage = messages[messages.length - 1]!;
 
-  const conversationId = await conversationService.getOrCreate();
+  const profileId = await getActiveProfileId();
+  const conversationId = await conversationService.getOrCreate(profileId);
 
   return agentService.streamChat({ conversationId, userMessage, applicationId });
 }
