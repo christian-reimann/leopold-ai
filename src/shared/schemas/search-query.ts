@@ -11,5 +11,7 @@ export const SearchCriteriaSchema = z.object({
   radiusKm: z.number().optional(),
   remote: z.boolean().optional(),
   employmentTypes: z.array(EmploymentTypeSchema).optional(),
+  // Leer/undefined = alle registrierten Connectoren durchsuchen.
+  connectors: z.array(z.string()).optional(),
 });
 export type SearchCriteria = z.infer<typeof SearchCriteriaSchema>;

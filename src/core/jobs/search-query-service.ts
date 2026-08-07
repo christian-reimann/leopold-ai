@@ -78,7 +78,7 @@ export class SearchQueryService {
   }
 
   async runNow(searchQueryId: string): Promise<void> {
-    await jobSearchQueue.enqueueRunSearchQuery(searchQueryId);
+    await jobSearchQueue.runSearchQueryNow(searchQueryId);
   }
 }
 

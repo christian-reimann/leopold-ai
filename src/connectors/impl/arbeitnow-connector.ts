@@ -13,7 +13,8 @@ const JobListingSchema = z.object({
   description: z.string().optional(),
   remote: z.boolean().optional(),
   url: z.string().optional(),
-  job_types: z.array(z.string()).optional(),
+  // arbeitnow serialisiert ein leeres job_types-Array gelegentlich als `{}` statt `[]` (PHP-Eigenheit).
+  job_types: z.preprocess((value) => (Array.isArray(value) ? value : []), z.array(z.string())).optional(),
   location: z.string().optional(),
   created_at: z.number(),
 });

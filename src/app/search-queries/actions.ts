@@ -42,4 +42,5 @@ export async function deleteSearchQueryAction(searchQueryId: string): Promise<vo
 export async function runSearchQueryNowAction(searchQueryId: string): Promise<void> {
   const id = SearchQueryIdSchema.parse(searchQueryId);
   await searchQueryService.runNow(id);
+  revalidatePath('/jobs');
 }

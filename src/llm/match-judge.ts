@@ -8,6 +8,10 @@ export class MatchJudge {
   constructor(private readonly model: LanguageModel = chatModel) {}
 
   async judge(profile: Profile, posting: JobPosting): Promise<MatchResult> {
+    const context = `Job "${posting.title}" bei ${posting.company}`;
+    console.log(`[${new Date().toISOString()}] [llm:match-judge] Bewertung gestartet für ${context}`);
+    const start = Date.now();
+
     const { output } = await generateText({
       model: this.model,
       output: Output.object({ schema: MatchResultSchema }),
@@ -35,6 +39,9 @@ export class MatchJudge {
         Sprachen: ${profile.languages.map((language) => `${language.language} (${language.level})`).join(', ')}`,
     });
 
+    console.log(
+      `[${new Date().toISOString()}] [llm:match-judge] Bewertung abgeschlossen für ${context} (Score: ${output.scoreMeToJob}, ${Date.now() - start}ms)`,
+    );
     return output;
   }
 }

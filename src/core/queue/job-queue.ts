@@ -1,4 +1,4 @@
-import { Queue } from 'bullmq';
+import { Queue, QueueEvents } from 'bullmq';
 import type { z } from 'zod';
 import { redisConnection } from './connection';
 
@@ -11,6 +11,7 @@ import { redisConnection } from './connection';
  */
 export abstract class JobQueue<TPayloadMap extends Record<string, z.ZodType>> {
   private readonly queue: Queue;
+  private queueEvents: QueueEvents | undefined;
 
   protected constructor(
     name: string,
@@ -25,6 +26,24 @@ export abstract class JobQueue<TPayloadMap extends Record<string, z.ZodType>> {
   ): Promise<void> {
     const data = this.schemaFor(jobName).parse(payload);
     await this.queue.add(jobName, data);
+  }
+
+  // Wartet auf den tatsächlichen Abschluss des Jobs (z.B. damit ein UI-Spinner die reale
+  // Laufzeit statt nur des Einreihens abbildet), statt wie `enqueue` sofort zurückzukehren.
+  protected async enqueueAndWait<K extends keyof TPayloadMap & string>(
+    jobName: K,
+    payload: z.infer<TPayloadMap[K]>,
+  ): Promise<void> {
+    const data = this.schemaFor(jobName).parse(payload);
+    const job = await this.queue.add(jobName, data);
+    await job.waitUntilFinished(this.getQueueEvents());
+  }
+
+  private getQueueEvents(): QueueEvents {
+    if (!this.queueEvents) {
+      this.queueEvents = new QueueEvents(this.queue.name, { connection: redisConnection });
+    }
+    return this.queueEvents;
   }
 
   protected async upsertScheduler<K extends keyof TPayloadMap & string>(

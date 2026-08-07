@@ -33,7 +33,7 @@ export function TiptapField({ content, onSave }: { content: string; onSave: (htm
   return (
     <EditorContent
       editor={editor}
-      className="rounded-sm outline-none focus-within:ring-2 focus-within:ring-neutral-200 focus-within:ring-offset-2"
+      className="rounded-sm outline-none focus-within:ring-2 focus-within:ring-neutral-200 focus-within:ring-offset-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5"
     />
   );
 }

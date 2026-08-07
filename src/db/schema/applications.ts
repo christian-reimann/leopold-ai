@@ -1,4 +1,4 @@
-import { pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { pgEnum, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
 import {
   APPLICATION_COLOR_SCHEMES,
   APPLICATION_LANGUAGES,
@@ -19,25 +19,29 @@ export const applicationColorSchemeEnum = pgEnum('application_color_scheme', APP
 export const applicationGenerationStatusEnum = pgEnum('application_generation_status', DOCUMENT_STATUSES);
 export const personalityTraitEnum = pgEnum('personality_trait', PERSONALITY_TRAITS);
 
-export const applications = pgTable('applications', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  profileId: uuid('profile_id')
-    .notNull()
-    .references(() => profiles.id, { onDelete: 'cascade' }),
-  jobId: uuid('job_id')
-    .notNull()
-    .references(() => jobPostings.id, { onDelete: 'cascade' }),
-  tone: applicationToneEnum('tone').notNull().default('neutral'),
-  personality: personalityTraitEnum('personality').array().notNull().default([]),
-  language: applicationLanguageEnum('language').notNull().default('de'),
-  layoutTemplate: applicationLayoutEnum('layout_template').notNull().default('standard'),
-  colorScheme: applicationColorSchemeEnum('color_scheme').notNull().default('slate'),
-  // Ab hier TipTap-editierbares HTML statt reinem Freitext.
-  cvContent: text('cv_content'),
-  letterContent: text('letter_content'),
-  generationStatus: applicationGenerationStatusEnum('generation_status').notNull().default('pending'),
-  generationError: text('generation_error'),
-  status: applicationStatusEnum('status').notNull().default('draft'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+export const applications = pgTable(
+  'applications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    profileId: uuid('profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    jobId: uuid('job_id')
+      .notNull()
+      .references(() => jobPostings.id, { onDelete: 'cascade' }),
+    tone: applicationToneEnum('tone').notNull().default('neutral'),
+    personality: personalityTraitEnum('personality').array().notNull().default([]),
+    language: applicationLanguageEnum('language').notNull().default('de'),
+    layoutTemplate: applicationLayoutEnum('layout_template').notNull().default('standard'),
+    colorScheme: applicationColorSchemeEnum('color_scheme').notNull().default('slate'),
+    // Ab hier TipTap-editierbares HTML statt reinem Freitext.
+    cvContent: text('cv_content'),
+    letterContent: text('letter_content'),
+    generationStatus: applicationGenerationStatusEnum('generation_status').notNull().default('pending'),
+    generationError: text('generation_error'),
+    status: applicationStatusEnum('status').notNull().default('draft'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [unique('applications_profile_id_job_id_unique').on(table.profileId, table.jobId)],
+);

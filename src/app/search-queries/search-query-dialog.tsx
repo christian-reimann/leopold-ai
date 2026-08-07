@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { ALL_CONNECTOR_IDS, connectorMetaFor } from '@/shared/connector-meta';
 import { EmploymentTypeSchema } from '@/shared/schemas/job-posting';
 import { NOTIFICATION_INTERVALS, type NotificationInterval, type SearchCriteria } from '@/shared/schemas/search-query';
 import { createSearchQueryAction, updateSearchQueryAction } from './actions';
@@ -60,6 +61,7 @@ export function SearchQueryDialog({
   const [radiusKm, setRadiusKm] = useState(criteria.radiusKm ?? 0);
   const [remote, setRemote] = useState(criteria.remote ?? false);
   const [employmentTypes, setEmploymentTypes] = useState<string[]>(criteria.employmentTypes ?? []);
+  const [connectors, setConnectors] = useState<string[]>(criteria.connectors ?? ALL_CONNECTOR_IDS);
   const [interval, setInterval] = useState<NotificationInterval>(
     target?.mode === 'edit' ? target.query.interval : 'daily',
   );
@@ -76,6 +78,7 @@ export function SearchQueryDialog({
     setRadiusKm(nextCriteria.radiusKm ?? 0);
     setRemote(nextCriteria.remote ?? false);
     setEmploymentTypes(nextCriteria.employmentTypes ?? []);
+    setConnectors(nextCriteria.connectors ?? ALL_CONNECTOR_IDS);
     setInterval(target?.mode === 'edit' ? target.query.interval : 'daily');
     setError(null);
   }, [open, target]);
@@ -101,6 +104,10 @@ export function SearchQueryDialog({
     setEmploymentTypes((prev) => (checked ? [...prev, type] : prev.filter((t) => t !== type)));
   }
 
+  function toggleConnector(connectorId: string, checked: boolean) {
+    setConnectors((prev) => (checked ? [...prev, connectorId] : prev.filter((id) => id !== connectorId)));
+  }
+
   function handleSubmit() {
     setError(null);
     startTransition(async () => {
@@ -112,6 +119,7 @@ export function SearchQueryDialog({
             radiusKm: radiusKm > 0 ? radiusKm : undefined,
             remote: remote || undefined,
             employmentTypes: employmentTypes.length > 0 ? employmentTypes : undefined,
+            connectors: connectors.length < ALL_CONNECTOR_IDS.length ? connectors : undefined,
           },
           interval,
         };
@@ -211,6 +219,28 @@ export function SearchQueryDialog({
           </div>
 
           <div>
+            <Label>Jobbörsen</Label>
+            <div className="flex flex-wrap gap-x-4 gap-y-2 pt-1">
+              {ALL_CONNECTOR_IDS.map((connectorId) => {
+                const meta = connectorMetaFor(connectorId);
+                return (
+                  <div key={connectorId} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`connector-${connectorId}`}
+                      checked={connectors.includes(connectorId)}
+                      onCheckedChange={(checked) => toggleConnector(connectorId, checked === true)}
+                    />
+                    <Label htmlFor={`connector-${connectorId}`} className="flex items-center gap-1.5">
+                      {meta.logo}
+                      {meta.label}
+                    </Label>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
             <Label htmlFor="interval">Prüfintervall</Label>
             <select
               id="interval"
@@ -230,7 +260,11 @@ export function SearchQueryDialog({
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         <DialogFooter>
-          <Button type="button" onClick={handleSubmit} disabled={keywords.length === 0 || isPending}>
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            disabled={keywords.length === 0 || connectors.length === 0 || isPending}
+          >
             {isPending ? 'Speichert …' : 'Speichern'}
           </Button>
         </DialogFooter>

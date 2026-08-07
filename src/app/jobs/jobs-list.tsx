@@ -1,15 +1,19 @@
 'use client';
 
+import { ChevronDown, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { Fragment, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import { NewApplicationDialog } from '@/app/applications/new-application-dialog';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { MatchSortBy } from '@/core/matching/matching-service';
+import { formatPostedAt } from '@/lib/format-posted-at';
 import { cn } from '@/lib/utils';
 import { connectorMetaFor } from '@/shared/connector-meta';
 import type { JobPosting } from '@/shared/schemas/job-posting';
 import type { MatchReasoning } from '@/shared/schemas/match';
+import { loadMoreJobsAction } from './actions';
+import { JOBS_PAGE_SIZE } from './constants';
 
 export type JobRow = {
   id: string;
@@ -18,6 +22,7 @@ export type JobRow = {
   reasoning: MatchReasoning;
   data: JobPosting;
   sourceConnector: string;
+  applicationId?: string;
 };
 
 const SORT_OPTIONS: { value: MatchSortBy; label: string }[] = [
@@ -25,26 +30,65 @@ const SORT_OPTIONS: { value: MatchSortBy; label: string }[] = [
   { value: 'postedAt', label: 'Nach Aktualität' },
 ];
 
-const relativeTimeFormat = new Intl.RelativeTimeFormat('de-DE', { numeric: 'auto' });
-
-function formatPostedAt(postedAt?: string): string | null {
-  if (!postedAt) return null;
-  const date = new Date(postedAt);
-  if (Number.isNaN(date.getTime())) return null;
-
-  const diffDays = Math.max(0, Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24)));
-
-  if (diffDays < 14) {
-    return relativeTimeFormat.format(-diffDays, 'day');
-  }
-  if (diffDays < 60) {
-    return relativeTimeFormat.format(-Math.floor(diffDays / 7), 'week');
-  }
-  return relativeTimeFormat.format(-Math.floor(diffDays / 30), 'month');
-}
-
-export function JobsList({ rows, sortBy }: { rows: JobRow[]; sortBy: MatchSortBy }) {
+export function JobsList({
+  initialRows,
+  sortBy,
+  totalCount,
+}: {
+  initialRows: JobRow[];
+  sortBy: MatchSortBy;
+  totalCount: number;
+}) {
   const [applicationTarget, setApplicationTarget] = useState<{ jobId: string; jobTitle: string } | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [rows, setRows] = useState(initialRows);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(initialRows.length === JOBS_PAGE_SIZE);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const isLoadingMoreRef = useRef(false);
+  const offsetRef = useRef(initialRows.length);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !isLoadingMoreRef.current) {
+          void loadMore();
+        }
+      },
+      { rootMargin: '200px' },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore]);
+
+  async function loadMore() {
+    isLoadingMoreRef.current = true;
+    setIsLoadingMore(true);
+    try {
+      const nextRows = await loadMoreJobsAction(offsetRef.current, sortBy);
+      offsetRef.current += nextRows.length;
+      setRows((prev) => [...prev, ...nextRows]);
+      setHasMore(nextRows.length === JOBS_PAGE_SIZE);
+    } finally {
+      isLoadingMoreRef.current = false;
+      setIsLoadingMore(false);
+    }
+  }
+
+  function toggleExpanded(id: string) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
 
   return (
     <div className="space-y-4">
@@ -52,7 +96,7 @@ export function JobsList({ rows, sortBy }: { rows: JobRow[]; sortBy: MatchSortBy
         <div>
           <h1 className="text-xl font-semibold">Jobs</h1>
           <p className="text-sm text-neutral-500">
-            {rows.length === 1 ? '1 Stellenangebot gefunden' : `${rows.length} Stellenangebote gefunden`}
+            {totalCount === 1 ? '1 Stellenangebot gefunden' : `${totalCount} Stellenangebote gefunden`}
           </p>
         </div>
         <div className="flex items-center gap-1 rounded-md border border-neutral-200 p-0.5 text-sm">
@@ -80,6 +124,8 @@ export function JobsList({ rows, sortBy }: { rows: JobRow[]; sortBy: MatchSortBy
           {rows.map((row) => {
             const connector = connectorMetaFor(row.sourceConnector);
             const postedAt = formatPostedAt(row.data.postedAt);
+            const isExpanded = expandedIds.has(row.id);
+            const hasReasoning = row.reasoning.positives.length > 0 || row.reasoning.negatives.length > 0;
 
             return (
               <li key={row.id} className="space-y-1 px-4 py-3">
@@ -100,16 +146,20 @@ export function JobsList({ rows, sortBy }: { rows: JobRow[]; sortBy: MatchSortBy
                       <TooltipContent>{connector.label}</TooltipContent>
                     </Tooltip>
                   </div>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="cursor-default text-lg font-semibold whitespace-nowrap">
-                        {Math.round(row.score)} %
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-sm flex-col items-start gap-2 py-2 text-left whitespace-normal">
-                      <ReasoningList reasoning={row.reasoning} />
-                    </TooltipContent>
-                  </Tooltip>
+                  <button
+                    type="button"
+                    onClick={() => hasReasoning && toggleExpanded(row.id)}
+                    disabled={!hasReasoning}
+                    aria-expanded={isExpanded}
+                    className="flex items-center gap-1 text-lg font-semibold whitespace-nowrap disabled:cursor-default"
+                  >
+                    {Math.round(row.score)} %
+                    {hasReasoning && (
+                      <ChevronDown
+                        className={cn('size-4 text-neutral-400 transition-transform', isExpanded && 'rotate-180')}
+                      />
+                    )}
+                  </button>
                 </div>
                 <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-neutral-500">
                   {(
@@ -127,18 +177,35 @@ export function JobsList({ rows, sortBy }: { rows: JobRow[]; sortBy: MatchSortBy
                       </Fragment>
                     ))}
                 </p>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setApplicationTarget({ jobId: row.jobId, jobTitle: row.data.title })}
-                >
-                  Bewerbung erstellen
-                </Button>
+                {isExpanded && (
+                  <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2">
+                    <ReasoningList reasoning={row.reasoning} />
+                  </div>
+                )}
+                {row.applicationId ? (
+                  <Button size="sm" variant="outline" asChild>
+                    <Link href={`/applications/${row.applicationId}`}>Bewerbung öffnen</Link>
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setApplicationTarget({ jobId: row.jobId, jobTitle: row.data.title })}
+                  >
+                    Jetzt bewerben
+                  </Button>
+                )}
               </li>
             );
           })}
         </ul>
+      )}
+
+      {hasMore && (
+        <div ref={sentinelRef} className="flex justify-center py-4">
+          {isLoadingMore && <Loader2 className="size-5 animate-spin text-neutral-400" />}
+        </div>
       )}
 
       {applicationTarget && (
@@ -154,23 +221,24 @@ export function JobsList({ rows, sortBy }: { rows: JobRow[]; sortBy: MatchSortBy
 }
 
 function ReasoningList({ reasoning }: { reasoning: MatchReasoning }) {
-  if (reasoning.positives.length === 0 && reasoning.negatives.length === 0) {
-    return <p>Keine Begründung vorhanden.</p>;
-  }
+  const positives = [...reasoning.positives].sort((a, b) => b.weight - a.weight);
+  const negatives = [...reasoning.negatives].sort((a, b) => b.weight - a.weight);
 
   return (
-    <table className="border-collapse">
+    <table className="border-collapse text-sm">
       <tbody>
-        {reasoning.positives.map((point, index) => (
+        {positives.map((point, index) => (
           <tr key={`positive-${index}`}>
-            <td className="pr-1.5 align-top font-mono text-emerald-400">{'+'.repeat(point.weight)}</td>
-            <td className="align-top">{point.text}</td>
+            <td className="pr-1.5 align-top font-mono whitespace-nowrap text-emerald-600">
+              {'+'.repeat(point.weight)}
+            </td>
+            <td className="align-top text-neutral-700">{point.text}</td>
           </tr>
         ))}
-        {reasoning.negatives.map((point, index) => (
+        {negatives.map((point, index) => (
           <tr key={`negative-${index}`}>
-            <td className="pr-1.5 align-top font-mono text-red-400">{'-'.repeat(point.weight)}</td>
-            <td className="align-top">{point.text}</td>
+            <td className="pr-1.5 align-top font-mono whitespace-nowrap text-red-600">{'-'.repeat(point.weight)}</td>
+            <td className="align-top text-neutral-700">{point.text}</td>
           </tr>
         ))}
       </tbody>

@@ -13,27 +13,43 @@ const DocumentIdSchema = z.uuid();
 
 const STORAGE_DIR = path.join(process.cwd(), 'storage', 'uploads');
 
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_TOTAL_SIZE_BYTES = 25 * 1024 * 1024;
+
 const UploadDocumentSchema = z.object({
-  file: z.instanceof(File),
+  files: z.array(z.instanceof(File)).min(1),
 });
 
 export async function uploadDocument(formData: FormData): Promise<void> {
-  const { file } = UploadDocumentSchema.parse({
-    file: formData.get('file'),
+  const { files } = UploadDocumentSchema.parse({
+    files: formData.getAll('file'),
   });
 
-  const extension = path.extname(file.name).toLowerCase();
-  if (!documentService.isSupportedDocumentExtension(extension)) {
-    throw new Error(`Nicht unterstütztes Dateiformat: ${extension}`);
+  const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+  if (totalSize > MAX_TOTAL_SIZE_BYTES) {
+    throw new Error('Gesamtgröße aller Dateien überschreitet 25 MB.');
   }
 
-  await mkdir(STORAGE_DIR, { recursive: true });
-  const storagePath = path.join('storage', 'uploads', `${randomUUID()}-${file.name}`);
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(process.cwd(), storagePath), buffer);
-
   const profileId = await getActiveProfileId();
-  await documentService.createDocument({ profileId, type: 'cv', storagePath, originalFilename: file.name });
+  await mkdir(STORAGE_DIR, { recursive: true });
+
+  for (const file of files) {
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      throw new Error(`Datei zu groß (max. 10 MB): ${file.name}`);
+    }
+
+    const extension = path.extname(file.name).toLowerCase();
+    if (!documentService.isSupportedDocumentExtension(extension)) {
+      throw new Error(`Nicht unterstütztes Dateiformat: ${extension}`);
+    }
+
+    const storagePath = path.join('storage', 'uploads', `${randomUUID()}-${file.name}`);
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await writeFile(path.join(process.cwd(), storagePath), buffer);
+
+    await documentService.createDocument({ profileId, type: 'cv', storagePath, originalFilename: file.name });
+  }
+
   revalidatePath('/profile');
 }
 

@@ -33,6 +33,10 @@ class JobSearchQueue extends JobQueue<typeof JOB_SEARCH_JOB_SCHEMAS> {
     await this.enqueue(JOB_SEARCH_JOB_NAMES.RUN_SEARCH_QUERY, { searchQueryId });
   }
 
+  async runSearchQueryNow(searchQueryId: string): Promise<void> {
+    await this.enqueueAndWait(JOB_SEARCH_JOB_NAMES.RUN_SEARCH_QUERY, { searchQueryId });
+  }
+
   /**
    * Legt einen BullMQ Job Scheduler an oder aktualisiert ihn (gleicher Key = Upsert). Live
    * verifiziert (2026-07): der erste Lauf wird sofort (delay=0) eingereiht, erst die

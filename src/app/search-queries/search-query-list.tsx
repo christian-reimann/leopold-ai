@@ -15,7 +15,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { ALL_CONNECTOR_IDS, connectorMetaFor } from '@/shared/connector-meta';
 import type { NotificationInterval, SearchCriteria } from '@/shared/schemas/search-query';
 import { deleteSearchQueryAction, runSearchQueryNowAction, setSearchQueryActiveAction } from './actions';
 import {
@@ -118,6 +120,23 @@ export function SearchQueryList({ searchQueries }: { searchQueries: SearchQueryR
                     </Badge>
                   </p>
                   <p className="text-sm text-neutral-500">{formatDetails(query)}</p>
+                  {query.criteria.connectors && query.criteria.connectors.length < ALL_CONNECTOR_IDS.length && (
+                    <div className="flex items-center gap-1 pt-0.5">
+                      {[...query.criteria.connectors]
+                        .sort((a, b) => connectorMetaFor(a).label.localeCompare(connectorMetaFor(b).label))
+                        .map((connectorId) => {
+                          const meta = connectorMetaFor(connectorId);
+                          return (
+                            <Tooltip key={connectorId}>
+                              <TooltipTrigger asChild>
+                                <span className="cursor-default">{meta.logo}</span>
+                              </TooltipTrigger>
+                              <TooltipContent>{meta.label}</TooltipContent>
+                            </Tooltip>
+                          );
+                        })}
+                    </div>
+                  )}
                 </button>
                 <div className="flex items-center gap-2">
                   <Button

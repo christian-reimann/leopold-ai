@@ -1,20 +1,33 @@
 'use client';
 
 import { useCallback, useState, useTransition } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { useDropzone, type FileRejection } from 'react-dropzone';
 import { uploadDocument } from './document-actions';
+
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_TOTAL_SIZE_BYTES = 25 * 1024 * 1024;
 
 export function UploadDropzone() {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (!file) return;
+  const onDrop = useCallback((acceptedFiles: File[], fileRejections: FileRejection[]) => {
+    if (fileRejections.length > 0) {
+      setError('Datei zu groß (max. 10 MB) oder Format nicht unterstützt.');
+    }
+    if (acceptedFiles.length === 0) return;
+
+    const totalSize = acceptedFiles.reduce((sum, file) => sum + file.size, 0);
+    if (totalSize > MAX_TOTAL_SIZE_BYTES) {
+      setError('Gesamtgröße aller Dateien überschreitet 25 MB.');
+      return;
+    }
 
     setError(null);
     const formData = new FormData();
-    formData.set('file', file);
+    for (const file of acceptedFiles) {
+      formData.append('file', file);
+    }
 
     startTransition(async () => {
       try {
@@ -27,7 +40,8 @@ export function UploadDropzone() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    multiple: false,
+    multiple: true,
+    maxSize: MAX_FILE_SIZE_BYTES,
     accept: {
       'application/pdf': ['.pdf'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],

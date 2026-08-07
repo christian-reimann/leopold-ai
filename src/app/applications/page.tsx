@@ -8,10 +8,14 @@ export default async function ApplicationsPage() {
 
   return (
     <ApplicationsList
-      rows={rows.map(({ application, job }) => ({
+      rows={rows.map(({ application, job, sourceConnector }) => ({
         id: application.id,
         jobTitle: job.title,
         company: job.company,
+        location: job.location,
+        postedAt: job.postedAt,
+        url: job.url,
+        sourceConnector,
         generationStatus: application.generationStatus,
       }))}
     />

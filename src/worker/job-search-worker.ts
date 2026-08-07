@@ -18,7 +18,11 @@ export class JobSearchWorker extends JobWorker<typeof JOB_SEARCH_JOB_NAMES> {
     const { searchQueryId } = RunSearchQueryJobSchema.parse(job.data);
     const { criteria, profileId } = await searchQueryService.getCriteria(searchQueryId);
 
-    for (const connector of connectorRegistry.getAll()) {
+    const connectors = criteria.connectors
+      ? connectorRegistry.getAll().filter((connector) => criteria.connectors?.includes(connector.id))
+      : connectorRegistry.getAll();
+
+    for (const connector of connectors) {
       const results = await connector.search(criteria);
       const newCanonicalIds = await jobPostingService.ingestConnectorResults(connector.id, results);
       for (const jobId of newCanonicalIds) {

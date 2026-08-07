@@ -52,6 +52,10 @@ export class ApplicationGenerator {
   constructor(private readonly model: LanguageModel = chatModel) {}
 
   async generateLetter(input: ApplicationGenerationInput): Promise<string> {
+    const context = `Anschreiben für Job "${input.job.title}" bei ${input.job.company}`;
+    console.log(`[${new Date().toISOString()}] [llm:application-generator] Generierung gestartet: ${context}`);
+    const start = Date.now();
+
     const { text } = await generateText({
       model: this.model,
       prompt: `Erstelle ein individuelles Anschreiben für die folgende Bewerbung, als eigenständiges Dokument – kein Lebenslauf, keine tabellarische Auflistung, sondern ein persönlich adressierter Fließtext an das Unternehmen.
@@ -63,10 +67,17 @@ export class ApplicationGenerator {
       ${this.sharedContext(input)}`,
     });
 
+    console.log(
+      `[${new Date().toISOString()}] [llm:application-generator] Generierung abgeschlossen: ${context} (${Date.now() - start}ms)`,
+    );
     return stripCodeFence(text.trim());
   }
 
   async generateCv(input: ApplicationGenerationInput): Promise<string> {
+    const context = `Lebenslauf für Job "${input.job.title}" bei ${input.job.company}`;
+    console.log(`[${new Date().toISOString()}] [llm:application-generator] Generierung gestartet: ${context}`);
+    const start = Date.now();
+
     const { text } = await generateText({
       model: this.model,
       prompt: `Erstelle einen auf die Stelle zugeschnittenen Lebenslauf für die folgende Bewerbung, als eigenständiges Dokument – kein Anschreiben, sondern eine strukturierte, tabellarische Übersicht.
@@ -78,6 +89,9 @@ export class ApplicationGenerator {
       ${this.sharedContext(input)}`,
     });
 
+    console.log(
+      `[${new Date().toISOString()}] [llm:application-generator] Generierung abgeschlossen: ${context} (${Date.now() - start}ms)`,
+    );
     return stripCodeFence(text.trim());
   }
 

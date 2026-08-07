@@ -19,6 +19,11 @@ const RAG_DOCUMENT_TYPES = ['cv', 'certificate'] as const;
 
 export class ApplicationService {
   async create(profileId: string, jobId: string, options: ApplicationOptions): Promise<string> {
+    const existing = await this.findByProfileAndJob(profileId, jobId);
+    if (existing) {
+      return existing.id;
+    }
+
     const [application] = await db
       .insert(applications)
       .values({ profileId, jobId, ...options })
@@ -31,6 +36,14 @@ export class ApplicationService {
     return application.id;
   }
 
+  async findByProfileAndJob(profileId: string, jobId: string): Promise<{ id: string } | undefined> {
+    const [application] = await db
+      .select({ id: applications.id })
+      .from(applications)
+      .where(and(eq(applications.profileId, profileId), eq(applications.jobId, jobId)));
+    return application;
+  }
+
   async getById(id: string): Promise<typeof applications.$inferSelect> {
     const [application] = await db.select().from(applications).where(eq(applications.id, id));
     if (!application) {
@@ -39,9 +52,17 @@ export class ApplicationService {
     return application;
   }
 
+  async listIdsByJobForProfile(profileId: string): Promise<Map<string, string>> {
+    const rows = await db
+      .select({ id: applications.id, jobId: applications.jobId })
+      .from(applications)
+      .where(eq(applications.profileId, profileId));
+    return new Map(rows.map((row) => [row.jobId, row.id]));
+  }
+
   async listAll(profileId: string) {
     return db
-      .select({ application: applications, job: jobPostings.data })
+      .select({ application: applications, job: jobPostings.data, sourceConnector: jobPostings.sourceConnector })
       .from(applications)
       .innerJoin(jobPostings, eq(applications.jobId, jobPostings.id))
       .where(eq(applications.profileId, profileId))

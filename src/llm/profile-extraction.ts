@@ -10,6 +10,10 @@ export class ProfileExtractor {
    * Der gesamte Dokumenttext geht als Prompt-Kontext direkt ins LLM.
    */
   async extractProfile(documentText: string): Promise<Profile> {
+    const context = `Profil-Extraktion (${documentText.length} Zeichen Dokumenttext)`;
+    console.log(`[${new Date().toISOString()}] [llm:profile-extraction] Gestartet: ${context}`);
+    const start = Date.now();
+
     const { output } = await generateText({
       model: this.model,
       output: Output.object({ schema: ProfileSchema }),
@@ -20,6 +24,9 @@ export class ProfileExtractor {
         ${documentText}`,
     });
 
+    console.log(
+      `[${new Date().toISOString()}] [llm:profile-extraction] Abgeschlossen: ${context} → "${output.personal.name}" (${Date.now() - start}ms)`,
+    );
     return output;
   }
 }

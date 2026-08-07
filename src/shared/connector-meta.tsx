@@ -40,3 +40,5 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
 export function connectorMetaFor(connectorId: string): ConnectorMeta {
   return CONNECTOR_META[connectorId] ?? { label: connectorId, logo: null };
 }
+
+export const ALL_CONNECTOR_IDS = Object.keys(CONNECTOR_META);
