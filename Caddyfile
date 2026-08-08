@@ -1,0 +1,7 @@
+{$APP_DOMAIN}:{$APP_PORT:3000} {
+	tls {
+		dns hetzner {env.HETZNER_API_TOKEN}
+	}
+
+	reverse_proxy web:3000
+}
