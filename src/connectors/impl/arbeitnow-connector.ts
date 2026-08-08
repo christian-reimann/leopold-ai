@@ -42,7 +42,7 @@ export class ArbeitnowConnector extends BaseConnector<JobListing> {
   private static readonly REQUEST_DELAY_MS = 500;
 
   readonly id = 'arbeitnow';
-  readonly userAgent = 'MortimerAI-Jobpilot/1.3';
+  readonly userAgent = 'LeopoldAI-Jobpilot/1.3';
 
   protected async fetchRaw(criteria: SearchCriteria): Promise<JobListing[]> {
     const listings = await this.fetchRecentListings();

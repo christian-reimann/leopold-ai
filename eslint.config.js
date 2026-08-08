@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint';
 /**
  * Ersetzt physische Package-Grenzen: erzwingt zur Lint-Zeit dieselbe
  * Abhängigkeitsrichtung, die vorher packages/* durchgesetzt hätte
- * (siehe MORTIMER-PROJEKTPLAN.md §4, "Modularer Monolith").
+ * (siehe LEOPOLD-PROJEKTPLAN.md §4, "Modularer Monolith").
  */
 function zone(target, forbiddenFrom) {
   return {

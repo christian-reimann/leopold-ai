@@ -98,7 +98,11 @@ export function AgentChat({
         setAttachments((prev) =>
           prev.map((attachment) =>
             attachment.key === key
-              ? { ...attachment, status: 'error', error: error instanceof Error ? error.message : 'Upload fehlgeschlagen' }
+              ? {
+                  ...attachment,
+                  status: 'error',
+                  error: error instanceof Error ? error.message : 'Upload fehlgeschlagen',
+                }
               : attachment,
           ),
         );
@@ -115,7 +119,7 @@ export function AgentChat({
       <ScrollArea className="min-h-0 flex-1 px-3">
         <div className="space-y-3 py-3">
           {messages.length === 0 && (
-            <p className="text-sm text-neutral-400">Frag Mortimer nach deinen Dokumenten, Suchaufträgen oder Jobs.</p>
+            <p className="text-sm text-neutral-400">Frag Leopold nach deinen Dokumenten, Suchaufträgen oder Jobs.</p>
           )}
           {messages.map((message) => (
             <div
@@ -133,7 +137,7 @@ export function AgentChat({
           {isBusy && (
             <div className="mr-6 flex items-center gap-2 rounded-lg bg-neutral-100 px-3 py-2 text-sm text-neutral-500">
               <Loader2 className="size-3.5 animate-spin" />
-              <span>Mortimer denkt nach …</span>
+              <span>Leopold denkt nach …</span>
             </div>
           )}
           <div ref={bottomRef} />
@@ -201,7 +205,7 @@ export function AgentChat({
                 handleSubmit();
               }
             }}
-            placeholder="Nachricht an Mortimer …"
+            placeholder="Nachricht an Leopold …"
             className="min-h-10 resize-none"
           />
           <Button

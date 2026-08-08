@@ -80,7 +80,7 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
   };
 
   readonly id = 'arbeitsagentur';
-  readonly userAgent = 'MortimerAI-Jobpilot/1.3';
+  readonly userAgent = 'LeopoldAI-Jobpilot/1.3';
 
   protected async fetchRaw(criteria: SearchCriteria): Promise<ArbeitsagenturRawItem[]> {
     const hits = await this.searchJobs(criteria);

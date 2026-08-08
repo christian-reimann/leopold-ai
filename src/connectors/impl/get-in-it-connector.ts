@@ -217,7 +217,7 @@ export class GetInItConnector extends BaseConnector<GetInItRawItem> {
   private static readonly MAX_SEARCH_RESULTS = 1000;
 
   readonly id = 'get-in-it';
-  readonly userAgent = 'MortimerAI-Jobpilot/1.3';
+  readonly userAgent = 'LeopoldAI-Jobpilot/1.3';
 
   protected async fetchRaw(criteria: SearchCriteria): Promise<GetInItRawItem[]> {
     const thematicPriorityIds = GetInItConnector.matchThematicPriorities(criteria.keywords);

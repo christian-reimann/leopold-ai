@@ -6,7 +6,7 @@ export class ProfileExtractor {
   constructor(private readonly model: LanguageModel = chatModel) {}
 
   /**
-   * Reine strukturierte Extraktion (kein RAG, siehe MORTIMER-PROJEKTPLAN.md §6):
+   * Reine strukturierte Extraktion (kein RAG, siehe LEOPOLD-PROJEKTPLAN.md §6):
    * Der gesamte Dokumenttext geht als Prompt-Kontext direkt ins LLM.
    */
   async extractProfile(documentText: string): Promise<Profile> {

@@ -14,7 +14,7 @@ function resolveApplicationId(pathname: string): string | undefined {
 }
 
 const transport = new DefaultChatTransport({ api: '/api/chat' });
-const COLLAPSED_STORAGE_KEY = 'mortimer-panel-collapsed';
+const COLLAPSED_STORAGE_KEY = 'leopold-panel-collapsed';
 
 export function AgentPanel() {
   const [initialMessages, setInitialMessages] = useState<UIMessage[] | null>(null);
@@ -26,7 +26,7 @@ export function AgentPanel() {
     setCollapsed(localStorage.getItem(COLLAPSED_STORAGE_KEY) === 'true');
   }, []);
 
-  // Wird nur einmal beim Mount geladen (nicht pro Seitenwechsel) – Mortimer hat einen
+  // Wird nur einmal beim Mount geladen (nicht pro Seitenwechsel) – Leopold hat einen
   // einzigen, app-weiten Gesprächsverlauf, auch auf /applications/*-Seiten.
   useEffect(() => {
     let cancelled = false;
@@ -57,7 +57,7 @@ export function AgentPanel() {
             size="icon-xs"
             variant="ghost"
             onClick={toggleCollapsed}
-            aria-label="Mortimer-Panel ausklappen"
+            aria-label="Leopold-Panel ausklappen"
           >
             <Bot className="size-4" />
           </Button>
@@ -66,7 +66,7 @@ export function AgentPanel() {
           type="button"
           size="icon-lg"
           onClick={toggleCollapsed}
-          aria-label="Mortimer-Panel öffnen"
+          aria-label="Leopold-Panel öffnen"
           className="fixed right-4 bottom-4 z-50 rounded-full shadow-lg sm:hidden"
         >
           <Bot className="size-5" />
@@ -91,13 +91,13 @@ export function AgentPanel() {
         {initialMessages === null ? (
           <>
             <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-3 py-3">
-              <span className="text-sm font-semibold">Mortimer</span>
+              <span className="text-sm font-semibold">Leopold</span>
               <Button
                 type="button"
                 size="icon-xs"
                 variant="ghost"
                 onClick={toggleCollapsed}
-                aria-label="Mortimer-Panel einklappen"
+                aria-label="Leopold-Panel einklappen"
               >
                 <ChevronRight className="size-3.5" />
               </Button>
@@ -136,7 +136,7 @@ function AgentPanelReady({
   return (
     <>
       <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-3 py-3">
-        <span className="text-sm font-semibold">Mortimer</span>
+        <span className="text-sm font-semibold">Leopold</span>
         <div className="flex items-center gap-1">
           <Button
             type="button"
@@ -153,7 +153,7 @@ function AgentPanelReady({
             size="icon-xs"
             variant="ghost"
             onClick={onCollapse}
-            aria-label="Mortimer-Panel einklappen"
+            aria-label="Leopold-Panel einklappen"
           >
             <ChevronRight className="size-3.5" />
           </Button>

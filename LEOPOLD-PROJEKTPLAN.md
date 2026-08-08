@@ -1,4 +1,4 @@
-# Mortimer – Projektplan & Kontext-Briefing
+# Leopold – Projektplan & Kontext-Briefing
 
 > **Zweck dieses Dokuments:** Kontext-Briefing für die Weiterarbeit in Claude Code.
 > Es hält alle bisher getroffenen Stack- und Architekturentscheidungen fest –
@@ -9,7 +9,7 @@
 
 ## 1. Projektüberblick
 
-**Mortimer** ist ein KI-Agent zur Unterstützung bei Jobsuche und Bewerbung.
+**Leopold** ist ein KI-Agent zur Unterstützung bei Jobsuche und Bewerbung.
 
 **Primäres Ziel des Projekts:** Lernen von KI-Agenten, Workflows, RAG und LLMs.
 Das Projekt soll nach Abschluss **als Open Source** veröffentlicht werden.
@@ -176,7 +176,7 @@ Werkzeug. Sie findet „ähnlich", nicht „gut passend"._
 
 ### Workflow vs. Agent
 
-- Das meiste in Mortimer (finden → dedup → klassifizieren → scoren → speichern) ist ein
+- Das meiste in Leopold (finden → dedup → klassifizieren → scoren → speichern) ist ein
   **deterministischer Workflow** = normaler TS-Code, der an Punkten das LLM aufruft.
   **Kein** frei entscheidender Agent (nicht-deterministisch, teuer, schwer zu debuggen).
 - **Echter Agent** lohnt sich v.a. bei der **Bewerbungs-Generierung** (LLM entscheidet
@@ -205,7 +205,7 @@ Playwright-Scraper) **ein Adapter**, der auf dieses Schema mappt. Deduplizierung
 
 ### Code-Stil: objektorientiert (Ausnahme: Next.js-Frontend)
 
-Mortimer wird grundsätzlich **objektorientiert** programmiert: Domänenlogik unter
+Leopold wird grundsätzlich **objektorientiert** programmiert: Domänenlogik unter
 `core/`, `connectors/`, `llm/` und `worker/` wird in Klassen gekapselt (Services,
 Strategien, Registries), nicht als lose Sammlung freier Funktionen. Etablierte Muster
 im Projekt:
@@ -320,9 +320,10 @@ lesbar für Open-Source-Mitwirkende.
 
 **Phase 3 – Connector + Job-Ingestion (Feature 4 + Teil 2)** ✅ abgeschlossen
 
-- Einheitliches `JobPosting`-Schema + erster Adapter: Arbeitsagentur-API
-  (`src/connectors/impl/arbeitsagentur-connector.ts`), Registry für weitere
-  Connectors (`src/connectors/registry.ts`)
+- Einheitliches `JobPosting`-Schema + Adapter, mittlerweile vier Quellen:
+  Arbeitsagentur-API, Arbeitnow, get-in-it, Kimeta (`src/connectors/impl/*.ts`),
+  Registry (`src/connectors/registry.ts`). Suchaufträge können Connectors gezielt
+  einschränken (`criteria.connectors`, Checkbox-Auswahl im Dialog)
 - Dedup zweistufig: `dedupe_hash` pro Connector-Quelle (Re-Poll aktualisiert
   Inhalte) + Near-Duplicate-Erkennung über Embedding-Cosine-Similarity gegen
   kanonische Postings (`src/core/jobs/jobposting-service.ts`)
@@ -342,11 +343,11 @@ lesbar für Open-Source-Mitwirkende.
   Ingest neuer Postings (kein eigener Queue-Job dafür nötig)
 - `/jobs`-UI zeigt Matches inkl. Score/Reasoning-Tooltip
 
-**Phase 5 – Mortimer als integrierter AI-Agent + Bewerbungs-Generierung
-(Feature 1+3, Lernziele 2+3)**
+**Phase 5 – Leopold als integrierter AI-Agent + Bewerbungs-Generierung
+(Feature 1+3, Lernziele 2+3)** ✅ abgeschlossen (inkl. mehrerer Erweiterungen danach)
 
 Deutlich erweiterter Zuschnitt gegenüber der ursprünglichen Idee "RAG + ggf.
-Agent + TipTap + PDF-Export": Mortimer bekommt einen **durchgängig integrierten
+Agent + TipTap + PDF-Export": Leopold bekommt einen **durchgängig integrierten
 AI-Agenten mit App-weitem Tool-Calling**, nicht nur ein Bewerbungs-Feature.
 
 - **Zentraler Agent-Chat**: feste, persistente Chat-Sidebar (`src/components/agent/`)
@@ -375,16 +376,45 @@ AI-Agenten mit App-weitem Tool-Calling**, nicht nur ein Bewerbungs-Feature.
   **fix** – Layout-Vorlagen (`src/core/applications/layout/`, Strategy+Registry,
   MVP: 1 Vorlage) rendern denselben HTML-Output sowohl für die Editor-Vorschau
   (`<iframe srcDoc>`) als auch für den PDF-Export, echtes WYSIWYG.
-- **PDF-Export** über Puppeteer (HTML→PDF), asynchron über Queue/Worker
-  (`ApplicationQueue`/`ApplicationWorker`, analog zu `DocumentQueue`/`Worker`).
+- **PDF-Export** über Puppeteer (HTML→PDF). Ursprünglich asynchron über
+  Queue/Worker, später (siehe unten) auf on-demand Streaming umgebaut.
 
-**Phase 6 – Benachrichtigungen (Feature 5)**
+**Nach Phase 5 ergänzt** (mehrere Folge-Commits, nicht mehr Teil des ursprünglichen
+Phase-5-Zuschnitts, aber direkt darauf aufbauend):
 
-- Intervalle (instant/daily) via BullMQ; Zustellkanal (E-Mail o.ä.)
+- **Chat-Attachments & PDF-Export-Rework**: Datei-Uploads im Agent-Chat (Staging
+  unter `storage/chat-uploads/`, 24h-Cleanup, Tool `addDocumentToProfile` übernimmt
+  ein Attachment ins Profil); PDF-Export von asynchron/queue-basiert auf **on-demand
+  Streaming** pro Dokument umgestellt (`GET /api/applications/[id]/pdf?doc=`) –
+  `pdfStatus`/`pdfPath`/Queue-Job dafür entfernt, da der Export schnell genug ist,
+  um synchron im Request zu laufen; Bewerbungsansicht auf Tabs (Anschreiben/
+  Lebenslauf) mit je eigenem Download-Button umgebaut; Tool `updateApplicationContent`
+  erlaubt dem Agenten gezielte HTML-Patches ohne volle Neugenerierung; „Bewerbung
+  löschen" (UI + Agent-Tool) ergänzt.
+- **Multi-Profile-Support**: harte Einzelprofil-Annahme im gesamten Code entfernt –
+  `profileId` zieht sich jetzt durch Applications, Matches, Documents,
+  Conversations und Search Queries. Aktives Profil wird **cookie-basiert**
+  verwaltet (kein Auth-System nötig), umschaltbar über ein Dropdown im Header
+  (`src/components/profile/profile-switcher.tsx`). Agent-Tools und Worker lösen
+  `profileId` bewusst aus der bearbeiteten Entität/Konversation auf statt aus einem
+  global gelesenen Cookie – verhindert Cross-Profile-Writes bei einem Profilwechsel
+  während ein Hintergrundjob läuft.
+- **Jobs-Pagination, Dedup, Connector-Filter**: `/jobs` auf Infinite-Scroll
+  umgestellt (`loadMoreJobsAction`) statt fixer 50-Zeilen-Liste; ein
+  Unique-Constraint erzwingt **eine Bewerbung pro Profil/Job-Paar**
+  (`ApplicationService.create` kurzschließt via `findByProfileAndJob`,
+  Migration `0014`); Suchaufträge können Connectors gezielt einschränken (s.o.);
+  „Jetzt ausführen" wartet jetzt auf den Job-Abschluss statt Fire-and-Forget
+  (`JobQueue.enqueueAndWait`).
 
-**Phase 7 – Open-Source-Politur**
+**Phase 6 – Open-Source-Politur** ✅ abgeschlossen
 
-- README, Lizenz, `.env.example`, Setup-Doku, Docker-Onboarding
+- Umbenennung Mortimer → Leopold (Code, UI, Agent-Persona, DB-User/-Name per
+  `ALTER USER`/`ALTER DATABASE` ohne Datenverlust, Projektplan)
+- `README.md` (Kurzbeschreibung, Tech-Stack, Setup, Dev-Workflow),
+  `LICENSE` (MIT)
+- `.env.example` und Docker-Onboarding (`docker-compose.yml`) waren bereits
+  vorhanden und aktuell
 
 ---
 
