@@ -117,7 +117,13 @@ export function ApplicationDetailBody({
           <Button type="button" variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
             Einstellungen
           </Button>
-          <Button type="button" variant="outline" size="sm" onClick={handleRegenerate} disabled={isPending || isGenerating}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleRegenerate}
+            disabled={isPending || isGenerating}
+          >
             Neu generieren
           </Button>
           <AlertDialog>
@@ -209,7 +215,14 @@ function PdfDownloadButton({
   onClick: () => void;
 }) {
   return (
-    <Button type="button" variant="outline" size="sm" className={cn('shrink-0', className)} onClick={onClick} disabled={disabled}>
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className={cn('shrink-0', className)}
+      onClick={onClick}
+      disabled={disabled}
+    >
       {isDownloading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
       Als PDF herunterladen
     </Button>

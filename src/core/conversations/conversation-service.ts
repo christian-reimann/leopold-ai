@@ -7,7 +7,10 @@ import { messages } from '@/db/schema/messages';
 export class ConversationService {
   /** Jedes Profil hat genau eine Konversation. */
   async getOrCreate(profileId: string): Promise<string> {
-    const [existing] = await db.select({ id: conversations.id }).from(conversations).where(eq(conversations.profileId, profileId));
+    const [existing] = await db
+      .select({ id: conversations.id })
+      .from(conversations)
+      .where(eq(conversations.profileId, profileId));
     if (existing) {
       return existing.id;
     }
@@ -25,7 +28,10 @@ export class ConversationService {
   }
 
   async getProfileId(conversationId: string): Promise<string> {
-    const [row] = await db.select({ profileId: conversations.profileId }).from(conversations).where(eq(conversations.id, conversationId));
+    const [row] = await db
+      .select({ profileId: conversations.profileId })
+      .from(conversations)
+      .where(eq(conversations.id, conversationId));
     if (!row) {
       throw new Error(`Konversation nicht gefunden: ${conversationId}`);
     }

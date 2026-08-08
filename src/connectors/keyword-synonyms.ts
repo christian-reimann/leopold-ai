@@ -52,6 +52,8 @@ function matchesAlias(keyword: string, alias: string): boolean {
  * damit für nicht abgedeckte Begriffe wie zuvor erhalten).
  */
 export function expandKeyword(normalizedKeyword: string): readonly string[] {
-  const group = KEYWORD_SYNONYM_GROUPS.find((aliases) => aliases.some((alias) => matchesAlias(normalizedKeyword, alias)));
+  const group = KEYWORD_SYNONYM_GROUPS.find((aliases) =>
+    aliases.some((alias) => matchesAlias(normalizedKeyword, alias)),
+  );
   return group ?? [normalizedKeyword];
 }

@@ -18,7 +18,9 @@ export function documentTools(profileId: string): ToolSet {
       execute: async ({ attachmentId, documentType }) => {
         const staged = await resolveStagedAttachment(attachmentId);
         if (staged.profileId !== profileId) {
-          throw new Error('Anhang gehört zu einem anderen Profil (evtl. wurde das aktive Profil zwischenzeitlich gewechselt).');
+          throw new Error(
+            'Anhang gehört zu einem anderen Profil (evtl. wurde das aktive Profil zwischenzeitlich gewechselt).',
+          );
         }
 
         await mkdir(UPLOADS_DIR, { recursive: true });

@@ -3,7 +3,7 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses, type UIMessage } from 'ai';
 import { Bot, ChevronRight, RotateCcw } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -77,11 +77,7 @@ export function AgentPanel() {
 
   return (
     <>
-      <div
-        className="fixed inset-0 z-40 bg-black/30 sm:hidden"
-        onClick={toggleCollapsed}
-        aria-hidden="true"
-      />
+      <div className="fixed inset-0 z-40 bg-black/30 sm:hidden" onClick={toggleCollapsed} aria-hidden="true" />
       <aside
         className={cn(
           'fixed inset-x-0 bottom-0 z-50 flex h-[85vh] min-h-0 flex-col overflow-hidden rounded-t-2xl border-t border-neutral-200 bg-white shadow-xl',
@@ -112,20 +108,26 @@ export function AgentPanel() {
   );
 }
 
-function AgentPanelReady({
-  initialMessages,
-  onCollapse,
-}: {
-  initialMessages: UIMessage[];
-  onCollapse: () => void;
-}) {
+function AgentPanelReady({ initialMessages, onCollapse }: { initialMessages: UIMessage[]; onCollapse: () => void }) {
   const pathname = usePathname();
   const applicationId = resolveApplicationId(pathname);
+  const router = useRouter();
 
   const { messages, sendMessage, addToolApprovalResponse, setMessages, status } = useChat({
     messages: initialMessages,
     transport,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
+    onFinish: ({ message }) => {
+      if (!applicationId) return;
+
+      const updatedCurrentApplication = message.parts.some((part) => {
+        if (part.type !== 'tool-updateApplicationContent' || part.state !== 'output-available') return false;
+        const input = part.input as { applicationId?: string } | undefined;
+        return input?.applicationId === applicationId;
+      });
+
+      if (updatedCurrentApplication) router.refresh();
+    },
   });
 
   async function handleReset() {

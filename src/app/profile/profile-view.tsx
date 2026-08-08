@@ -161,11 +161,7 @@ export function ProfileView({ profile }: { profile: Profile }) {
         </div>
       </CompactSection>
 
-      <PersonalDialog
-        open={target?.kind === 'personal'}
-        onOpenChange={(open) => !open && close()}
-        profile={profile}
-      />
+      <PersonalDialog open={target?.kind === 'personal'} onOpenChange={(open) => !open && close()} profile={profile} />
       <ExperienceDialog
         open={target?.kind === 'experience'}
         onOpenChange={(open) => !open && close()}

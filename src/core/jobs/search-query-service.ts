@@ -18,10 +18,17 @@ export class SearchQueryService {
   }
 
   async listAll(profileId: string): Promise<(typeof searchQueries.$inferSelect)[]> {
-    return db.select().from(searchQueries).where(eq(searchQueries.profileId, profileId)).orderBy(desc(searchQueries.createdAt));
+    return db
+      .select()
+      .from(searchQueries)
+      .where(eq(searchQueries.profileId, profileId))
+      .orderBy(desc(searchQueries.createdAt));
   }
 
-  async create(profileId: string, input: { criteria: SearchCriteria; interval: NotificationInterval }): Promise<string> {
+  async create(
+    profileId: string,
+    input: { criteria: SearchCriteria; interval: NotificationInterval },
+  ): Promise<string> {
     const [row] = await db
       .insert(searchQueries)
       .values({ profileId, ...input, active: true })
