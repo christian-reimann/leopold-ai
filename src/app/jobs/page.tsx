@@ -16,7 +16,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
 
   return (
     <JobsList
-      key={sortBy}
+      key={`${profileId}-${sortBy}`}
       sortBy={sortBy}
       totalCount={totalCount}
       initialRows={rows.map((row) => ({

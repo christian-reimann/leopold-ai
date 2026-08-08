@@ -57,7 +57,7 @@ export function UploadDropzone() {
       <div
         {...getRootProps()}
         className={`cursor-pointer border px-6 py-10 text-center text-sm ${
-          isDragActive ? 'border-neutral-900 bg-neutral-50' : 'border-neutral-300 border-dashed'
+          isDragActive ? 'border-primary bg-muted' : 'border-input border-dashed'
         }`}
       >
         <input {...getInputProps()} />

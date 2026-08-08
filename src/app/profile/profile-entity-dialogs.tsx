@@ -19,8 +19,8 @@ import {
 } from '@/shared/schemas/profile';
 import { EntityDialog } from './entity-dialog';
 
-const textareaClassName = 'w-full border border-neutral-300 px-2 py-1 text-sm';
-const selectClassName = 'h-8 w-full border border-neutral-300 px-2 text-sm';
+const textareaClassName = 'w-full border border-input px-2 py-1 text-sm';
+const selectClassName = 'h-8 w-full border border-input px-2 text-sm';
 
 type DialogProps = {
   open: boolean;

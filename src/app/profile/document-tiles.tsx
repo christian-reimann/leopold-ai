@@ -29,7 +29,7 @@ const TYPE_LABELS: Record<DocumentType, string> = {
 const FILE_ICONS: Record<string, { Icon: typeof File; className: string }> = {
   '.pdf': { Icon: FileText, className: 'text-red-600' },
   '.docx': { Icon: FileType, className: 'text-blue-600' },
-  '.txt': { Icon: File, className: 'text-neutral-500' },
+  '.txt': { Icon: File, className: 'text-muted-foreground' },
   '.jpg': { Icon: FileImage, className: 'text-emerald-600' },
   '.jpeg': { Icon: FileImage, className: 'text-emerald-600' },
   '.png': { Icon: FileImage, className: 'text-emerald-600' },
@@ -38,7 +38,7 @@ const FILE_ICONS: Record<string, { Icon: typeof File; className: string }> = {
 
 function fileIconFor(name: string) {
   const extension = name.slice(name.lastIndexOf('.')).toLowerCase();
-  return FILE_ICONS[extension] ?? { Icon: File, className: 'text-neutral-400' };
+  return FILE_ICONS[extension] ?? { Icon: File, className: 'text-muted-foreground' };
 }
 
 export type DocumentTile = {
@@ -138,13 +138,7 @@ export function DocumentTiles({
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button type="button" size="lg" disabled={isGenerating} className="cursor-pointer">
-                {isGenerating ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : profileStatus === 'done' ? (
-                  <CheckCircle2 className="size-4 text-emerald-400" />
-                ) : profileStatus === 'failed' ? (
-                  <XCircle className="size-4 text-red-400" />
-                ) : null}
+                {isGenerating && <Loader2 className="size-4 animate-spin" />}
                 Profil generieren
               </Button>
             </AlertDialogTrigger>
@@ -164,7 +158,7 @@ export function DocumentTiles({
         </div>
       )}
 
-      {docs.length === 0 && <p className="text-sm text-neutral-500">Noch keine Dokumente hochgeladen.</p>}
+      {docs.length === 0 && <p className="text-sm text-muted-foreground">Noch keine Dokumente hochgeladen.</p>}
       {docs.length > 0 && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {docs.map((doc) => {
@@ -188,15 +182,15 @@ export function DocumentTiles({
                 <div className="relative flex h-12 w-12 items-center justify-center">
                   <Icon className={cn('size-10', className)} />
                   {state === 'running' && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-white/80">
-                      <Loader2 className="size-6 animate-spin text-neutral-500" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+                      <Loader2 className="size-6 animate-spin text-muted-foreground" />
                     </div>
                   )}
                   {state === 'success' && (
-                    <CheckCircle2 className="absolute -right-1 -bottom-1 size-5 rounded-full bg-white text-green-600" />
+                    <CheckCircle2 className="absolute -right-1 -bottom-1 size-5 rounded-full bg-background text-green-600" />
                   )}
                   {state === 'failed' && (
-                    <XCircle className="absolute -right-1 -bottom-1 size-5 rounded-full bg-white text-red-600" />
+                    <XCircle className="absolute -right-1 -bottom-1 size-5 rounded-full bg-background text-red-600" />
                   )}
                 </div>
 
@@ -207,7 +201,7 @@ export function DocumentTiles({
                   type="button"
                   disabled={isPending}
                   onClick={() => handleCycleType(doc)}
-                  className="rounded px-1 text-[11px] text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700"
+                  className="rounded px-1 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
                   title="Klicken, um den Dokumenttyp zu wechseln"
                 >
                   {TYPE_LABELS[doc.type]}

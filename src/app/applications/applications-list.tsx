@@ -49,28 +49,29 @@ export function ApplicationsList({ rows }: { rows: ApplicationRow[] }) {
   return (
     <div className="space-y-4">
       <AutoRefresh active={hasPending} />
-      <h1 className="text-xl font-semibold">Bewerbungen</h1>
+      <h1 className="font-heading text-xl font-semibold">Bewerbungen</h1>
 
-      {rows.length === 0 && <p className="text-sm text-neutral-500">Noch keine Bewerbungen erstellt.</p>}
+      {rows.length === 0 && <p className="text-sm text-muted-foreground">Noch keine Bewerbungen erstellt.</p>}
 
       {rows.length > 0 && (
-        <ul className="divide-y divide-neutral-200">
+        <ul className="divide-y divide-border">
           {rows.map((row) => {
             const connector = connectorMetaFor(row.sourceConnector);
             const postedAt = formatPostedAt(row.postedAt);
 
             return (
-              <li key={row.id} className="flex items-center justify-between gap-4 px-4 py-3">
-                <Link href={`/applications/${row.id}`} className="min-w-0 flex-1 space-y-1">
-                  <div className="flex min-w-0 items-center gap-1.5">
-                    <p className="truncate font-medium">{row.jobTitle}</p>
+              <li key={row.id} className="flex items-start justify-between gap-4 px-4 py-3">
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-1.5">
+                    <Link href={`/applications/${row.id}`} className="min-w-0 font-medium">
+                      {row.jobTitle}
+                    </Link>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <a
                           href={row.url}
                           target="_blank"
                           rel="noreferrer"
-                          onClick={(event) => event.stopPropagation()}
                           className="shrink-0 cursor-default"
                         >
                           {connector.logo}
@@ -79,7 +80,10 @@ export function ApplicationsList({ rows }: { rows: ApplicationRow[] }) {
                       <TooltipContent>{connector.label}</TooltipContent>
                     </Tooltip>
                   </div>
-                  <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-neutral-500">
+                  <Link
+                    href={`/applications/${row.id}`}
+                    className="flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground"
+                  >
                     {(
                       [
                         postedAt ? <span key="postedAt">{postedAt}</span> : null,
@@ -94,18 +98,19 @@ export function ApplicationsList({ rows }: { rows: ApplicationRow[] }) {
                           {part}
                         </Fragment>
                       ))}
-                  </p>
-                </Link>
+                  </Link>
+                </div>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
                       type="button"
-                      variant="ghost"
-                      size="icon-xs"
+                      variant="outline"
+                      size="sm"
                       disabled={isPending}
                       aria-label={`Bewerbung für ${row.jobTitle} löschen`}
                     >
-                      <Trash2 className="size-4" />
+                      <Trash2 className="size-3.5" />
+                      Löschen
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
@@ -117,7 +122,7 @@ export function ApplicationsList({ rows }: { rows: ApplicationRow[] }) {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-                      <AlertDialogAction variant="destructive" onClick={() => handleDelete(row.id)}>
+                      <AlertDialogAction onClick={() => handleDelete(row.id)}>
                         Löschen
                       </AlertDialogAction>
                     </AlertDialogFooter>

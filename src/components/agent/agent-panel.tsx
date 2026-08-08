@@ -14,17 +14,14 @@ function resolveApplicationId(pathname: string): string | undefined {
 }
 
 const transport = new DefaultChatTransport({ api: '/api/chat' });
-const COLLAPSED_STORAGE_KEY = 'leopold-panel-collapsed';
+export const PANEL_COLLAPSED_COOKIE = 'leopold-panel-collapsed';
+const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
-export function AgentPanel() {
+export function AgentPanel({ initialCollapsed }: { initialCollapsed: boolean }) {
   const [initialMessages, setInitialMessages] = useState<UIMessage[] | null>(null);
-  const [collapsed, setCollapsed] = useState(false);
-
-  // Zustand kommt erst nach dem Mount aus localStorage (SSR kennt keine Browser-Präferenz) –
-  // ein kurzes Aufblitzen im ausgeklappten Zustand ist hier unkritisch.
-  useEffect(() => {
-    setCollapsed(localStorage.getItem(COLLAPSED_STORAGE_KEY) === 'true');
-  }, []);
+  // Ausgangszustand kommt vom Server (Cookie) statt aus localStorage, damit SSR- und Client-Render
+  // von Anfang an übereinstimmen – kein Aufblitzen des ausgeklappten Panels beim Neuladen.
+  const [collapsed, setCollapsed] = useState(initialCollapsed);
 
   // Wird nur einmal beim Mount geladen (nicht pro Seitenwechsel) – Leopold hat einen
   // einzigen, app-weiten Gesprächsverlauf, auch auf /applications/*-Seiten.
@@ -43,7 +40,7 @@ export function AgentPanel() {
   function toggleCollapsed() {
     setCollapsed((prev) => {
       const next = !prev;
-      localStorage.setItem(COLLAPSED_STORAGE_KEY, String(next));
+      document.cookie = `${PANEL_COLLAPSED_COOKIE}=${next}; path=/; max-age=${ONE_YEAR_SECONDS}`;
       return next;
     });
   }
@@ -51,15 +48,15 @@ export function AgentPanel() {
   if (collapsed) {
     return (
       <>
-        <aside className="hidden h-full w-12 shrink-0 flex-col items-center border-l border-neutral-200 py-3 sm:flex">
+        <aside className="hidden h-full w-12 shrink-0 flex-col items-center border-l border-border py-3 sm:flex">
           <Button
             type="button"
-            size="icon-xs"
-            variant="ghost"
+            size="icon-sm"
+            className="rounded-full"
             onClick={toggleCollapsed}
             aria-label="Leopold-Panel ausklappen"
           >
-            <Bot className="size-4" />
+            <Bot className="size-5" />
           </Button>
         </aside>
         <Button
@@ -80,14 +77,14 @@ export function AgentPanel() {
       <div className="fixed inset-0 z-40 bg-black/30 sm:hidden" onClick={toggleCollapsed} aria-hidden="true" />
       <aside
         className={cn(
-          'fixed inset-x-0 bottom-0 z-50 flex h-[85vh] min-h-0 flex-col overflow-hidden rounded-t-2xl border-t border-neutral-200 bg-white shadow-xl',
+          'fixed inset-x-0 bottom-0 z-50 flex h-[85vh] min-h-0 flex-col overflow-hidden rounded-t-2xl border-t border-border bg-card shadow-xl',
           'sm:static sm:inset-auto sm:z-auto sm:h-full sm:w-96 sm:shrink-0 sm:rounded-none sm:border-t-0 sm:border-l sm:shadow-none',
         )}
       >
         {initialMessages === null ? (
           <>
-            <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-3 py-3">
-              <span className="text-sm font-semibold">Leopold</span>
+            <div className="flex shrink-0 items-center justify-between border-b border-border px-3 py-3">
+              <span className="font-heading text-base font-semibold">Leopold</span>
               <Button
                 type="button"
                 size="icon-xs"
@@ -98,7 +95,7 @@ export function AgentPanel() {
                 <ChevronRight className="size-3.5" />
               </Button>
             </div>
-            <p className="p-3 text-sm text-neutral-400">Lädt …</p>
+            <p className="p-3 text-sm text-muted-foreground">Lädt …</p>
           </>
         ) : (
           <AgentPanelReady initialMessages={initialMessages} onCollapse={toggleCollapsed} />
@@ -137,8 +134,8 @@ function AgentPanelReady({ initialMessages, onCollapse }: { initialMessages: UIM
 
   return (
     <>
-      <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-3 py-3">
-        <span className="text-sm font-semibold">Leopold</span>
+      <div className="relative z-10 flex shrink-0 items-center justify-between px-3 py-3 shadow-sm">
+        <span className="font-heading text-base font-semibold">Leopold AI</span>
         <div className="flex items-center gap-1">
           <Button
             type="button"

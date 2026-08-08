@@ -94,19 +94,19 @@ export function JobsList({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">Jobs</h1>
-          <p className="text-sm text-neutral-500">
+          <h1 className="font-heading text-xl font-semibold">Jobs</h1>
+          <p className="text-sm text-muted-foreground">
             {totalCount === 1 ? '1 Stellenangebot gefunden' : `${totalCount} Stellenangebote gefunden`}
           </p>
         </div>
-        <div className="flex items-center gap-1 rounded-md border border-neutral-200 p-0.5 text-sm">
+        <div className="flex items-center gap-1 rounded-md border border-border p-0.5 text-sm">
           {SORT_OPTIONS.map((option) => (
             <Link
               key={option.value}
               href={option.value === 'postedAt' ? '/jobs' : `/jobs?sort=${option.value}`}
               className={cn(
                 'rounded px-2.5 py-1 transition-colors',
-                sortBy === option.value ? 'bg-neutral-900 text-white' : 'text-neutral-600 hover:bg-neutral-100',
+                sortBy === option.value ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted',
               )}
             >
               {option.label}
@@ -116,11 +116,11 @@ export function JobsList({
       </div>
 
       {rows.length === 0 && (
-        <p className="text-sm text-neutral-500">Noch keine Jobs – Suchaufträge laufen im Hintergrund.</p>
+        <p className="text-sm text-muted-foreground">Noch keine Jobs – Suchaufträge laufen im Hintergrund.</p>
       )}
 
       {rows.length > 0 && (
-        <ul className="divide-y divide-neutral-200">
+        <ul className="divide-y divide-border">
           {rows.map((row) => {
             const connector = connectorMetaFor(row.sourceConnector);
             const postedAt = formatPostedAt(row.data.postedAt);
@@ -129,13 +129,13 @@ export function JobsList({
 
             return (
               <li key={row.id} className="space-y-1 px-4 py-3">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex min-w-0 items-center gap-1.5">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-1.5">
                     <a
                       href={row.data.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="truncate text-base font-medium hover:underline"
+                      className="text-base font-medium hover:underline"
                     >
                       {row.data.title}
                     </a>
@@ -151,17 +151,17 @@ export function JobsList({
                     onClick={() => hasReasoning && toggleExpanded(row.id)}
                     disabled={!hasReasoning}
                     aria-expanded={isExpanded}
-                    className="flex items-center gap-1 text-lg font-semibold whitespace-nowrap disabled:cursor-default"
+                    className="flex shrink-0 items-center gap-1 text-lg font-semibold whitespace-nowrap disabled:cursor-default"
                   >
                     {Math.round(row.score)} %
                     {hasReasoning && (
                       <ChevronDown
-                        className={cn('size-4 text-neutral-400 transition-transform', isExpanded && 'rotate-180')}
+                        className={cn('size-4 text-muted-foreground transition-transform', isExpanded && 'rotate-180')}
                       />
                     )}
                   </button>
                 </div>
-                <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-neutral-500">
+                <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
                   {(
                     [
                       postedAt ? <span key="postedAt">{postedAt}</span> : null,
@@ -178,7 +178,7 @@ export function JobsList({
                     ))}
                 </p>
                 {isExpanded && (
-                  <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2">
+                  <div className="rounded-md border border-border bg-muted px-3 py-2">
                     <ReasoningList reasoning={row.reasoning} />
                   </div>
                 )}
@@ -193,7 +193,7 @@ export function JobsList({
                     variant="outline"
                     onClick={() => setApplicationTarget({ jobId: row.jobId, jobTitle: row.data.title })}
                   >
-                    Jetzt bewerben
+                    Bewerbung erstellen
                   </Button>
                 )}
               </li>
@@ -204,7 +204,7 @@ export function JobsList({
 
       {hasMore && (
         <div ref={sentinelRef} className="flex justify-center py-4">
-          {isLoadingMore && <Loader2 className="size-5 animate-spin text-neutral-400" />}
+          {isLoadingMore && <Loader2 className="size-5 animate-spin text-muted-foreground" />}
         </div>
       )}
 
@@ -232,13 +232,13 @@ function ReasoningList({ reasoning }: { reasoning: MatchReasoning }) {
             <td className="pr-1.5 align-top font-mono whitespace-nowrap text-emerald-600">
               {'+'.repeat(point.weight)}
             </td>
-            <td className="align-top text-neutral-700">{point.text}</td>
+            <td className="align-top text-foreground">{point.text}</td>
           </tr>
         ))}
         {negatives.map((point, index) => (
           <tr key={`negative-${index}`}>
             <td className="pr-1.5 align-top font-mono whitespace-nowrap text-red-600">{'-'.repeat(point.weight)}</td>
-            <td className="align-top text-neutral-700">{point.text}</td>
+            <td className="align-top text-foreground">{point.text}</td>
           </tr>
         ))}
       </tbody>

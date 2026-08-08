@@ -53,8 +53,8 @@ export function NewApplicationDialog({
           <DialogTitle>Bewerbung erstellen</DialogTitle>
         </DialogHeader>
 
-        <p className="text-sm text-neutral-500">
-          für <span className="font-medium text-neutral-900">{jobTitle}</span>
+        <p className="text-sm text-muted-foreground">
+          für <span className="font-medium text-foreground">{jobTitle}</span>
         </p>
 
         <ApplicationOptionsFields value={options} onChange={setOptions} />

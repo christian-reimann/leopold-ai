@@ -54,15 +54,15 @@ export function ProfileView({ profile }: { profile: Profile }) {
       <button
         type="button"
         onClick={() => setTarget({ kind: 'personal' })}
-        className="-m-2 block w-full space-y-2 rounded-md p-2 text-left hover:bg-neutral-50"
+        className="-m-2 block w-full space-y-2 rounded-md p-2 text-left hover:bg-muted"
       >
         <div>
-          <h3 className="text-base font-semibold">{name || 'Ohne Namen'}</h3>
-          {role && <p className="text-sm text-neutral-600">{role}</p>}
+          <h3 className="font-heading text-base font-semibold">{name || 'Ohne Namen'}</h3>
+          {role && <p className="text-sm text-muted-foreground">{role}</p>}
         </div>
-        {addressLine && <p className="text-sm text-neutral-600">{addressLine}</p>}
+        {addressLine && <p className="text-sm text-muted-foreground">{addressLine}</p>}
         {contactItems.length > 0 && (
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-neutral-600">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
             {contactItems.map((item) => (
               <span key={item}>{item}</span>
             ))}
@@ -113,9 +113,9 @@ export function ProfileView({ profile }: { profile: Profile }) {
               key={index}
               type="button"
               onClick={() => setTarget({ kind: 'skillCategory', index })}
-              className="-m-1 flex w-full flex-wrap items-center gap-1.5 rounded-md p-1 text-left text-sm hover:bg-neutral-50"
+              className="-m-1 flex w-full flex-wrap items-center gap-1.5 rounded-md p-1 text-left text-sm hover:bg-muted"
             >
-              <span className="font-medium text-neutral-700">{category.name}:</span>
+              <span className="font-medium text-foreground">{category.name}:</span>
               {category.skills.map((skill) => (
                 <Badge key={skill} variant="secondary">
                   {skill}
@@ -137,13 +137,13 @@ export function ProfileView({ profile }: { profile: Profile }) {
       </CompactSection>
 
       <CompactSection title="Sprachen" onAdd={() => setTarget({ kind: 'language', index: null })}>
-        <div className="flex flex-wrap gap-1.5 text-sm text-neutral-600">
+        <div className="flex flex-wrap gap-1.5 text-sm text-muted-foreground">
           {languages.map((entry, index) => (
             <button
               key={entry.language}
               type="button"
               onClick={() => setTarget({ kind: 'language', index })}
-              className="rounded-md px-1 hover:bg-neutral-50"
+              className="rounded-md px-1 hover:bg-muted"
             >
               {entry.language} ({entry.level})
             </button>
@@ -211,8 +211,8 @@ export function ProfileView({ profile }: { profile: Profile }) {
 function CompactSection({ title, onAdd, children }: { title: string; onAdd: () => void; children: ReactNode }) {
   return (
     <section className="space-y-2">
-      <div className="flex items-center justify-between">
-        <h4 className="text-xs font-semibold tracking-wide text-neutral-500 uppercase">{title}</h4>
+      <div className="flex items-center justify-between border-b border-border pb-1.5">
+        <h4 className="font-heading text-sm font-semibold tracking-wide text-foreground uppercase">{title}</h4>
         <Button type="button" size="icon-xs" variant="ghost" onClick={onAdd} aria-label={`${title} hinzufügen`}>
           <Plus className="size-3.5" />
         </Button>
@@ -237,13 +237,13 @@ function CompactEntry({
     <button
       type="button"
       onClick={onClick}
-      className="-m-1 flex w-full flex-wrap items-baseline justify-between gap-x-3 rounded-md p-1 text-left text-sm hover:bg-neutral-50"
+      className="-m-1 flex w-full flex-wrap items-baseline justify-between gap-x-3 rounded-md p-1 text-left text-sm hover:bg-muted"
     >
       <span className="font-medium">
         {title}
-        {subtitle ? <span className="font-normal text-neutral-500"> · {subtitle}</span> : null}
+        {subtitle ? <span className="font-normal text-muted-foreground"> · {subtitle}</span> : null}
       </span>
-      <span className="text-neutral-500">{range}</span>
+      <span className="text-muted-foreground">{range}</span>
     </button>
   );
 }

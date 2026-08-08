@@ -1,12 +1,18 @@
 'use client';
 
+import { Check, ChevronDown, Plus, UserRound } from 'lucide-react';
 import { useState, useTransition } from 'react';
 import { createProfileAction, switchProfileAction } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-
-const NEW_PROFILE_VALUE = '__new__';
 
 export function ProfileSwitcher({
   profiles,
@@ -18,32 +24,38 @@ export function ProfileSwitcher({
   const [createOpen, setCreateOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  function handleChange(value: string) {
-    if (value === NEW_PROFILE_VALUE) {
-      setCreateOpen(true);
-      return;
-    }
+  const activeProfile = profiles.find((profile) => profile.id === activeProfileId);
+
+  function handleSwitch(id: string) {
     startTransition(async () => {
-      await switchProfileAction(value);
+      await switchProfileAction(id);
     });
   }
 
   return (
     <>
-      <select
-        className="h-8 rounded-md border border-neutral-300 bg-white px-2 text-sm"
-        value={activeProfileId}
-        disabled={isPending}
-        onChange={(event) => handleChange(event.target.value)}
-        aria-label="Aktives Profil"
-      >
-        {profiles.map((profile) => (
-          <option key={profile.id} value={profile.id}>
-            {profile.name}
-          </option>
-        ))}
-        <option value={NEW_PROFILE_VALUE}>+ Neues Profil</option>
-      </select>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button type="button" variant="outline" size="sm" disabled={isPending}>
+            <UserRound className="size-3.5" />
+            {activeProfile?.name ?? 'Profil'}
+            <ChevronDown className="size-3.5 text-muted-foreground" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {profiles.map((profile) => (
+            <DropdownMenuItem key={profile.id} onSelect={() => handleSwitch(profile.id)}>
+              <Check className={profile.id === activeProfileId ? 'opacity-100' : 'opacity-0'} />
+              {profile.name}
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => setCreateOpen(true)}>
+            <Plus />
+            Neues Profil
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <NewProfileDialog open={createOpen} onOpenChange={setCreateOpen} />
     </>
   );

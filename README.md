@@ -5,9 +5,7 @@ verwalten, Profildaten extrahieren, Jobangebote automatisch finden und per
 LLM-Matching bewerten, Bewerbungen (Lebenslauf + Anschreiben) generieren und als
 PDF exportieren – gesteuert über einen app-weiten Chat-Agenten mit Tool-Calling.
 
-Entstanden als Lernprojekt für KI-Agenten, Workflows, RAG und LLMs. Den vollen
-Kontext zu Architektur- und Stack-Entscheidungen (inkl. Begründungen) gibt es in
-[LEOPOLD-PROJEKTPLAN.md](./LEOPOLD-PROJEKTPLAN.md).
+Entstanden als Lernprojekt für KI-Agenten, Workflows, RAG und LLMs.
 
 ## Tech-Stack
 

@@ -31,8 +31,8 @@ export function ProfilePageBody({
   if (!hasProfile && mode === null) {
     return (
       <>
-        <div className="space-y-4 rounded-lg border border-dashed border-neutral-300 p-10 text-center">
-          <p className="text-sm text-neutral-500">
+        <div className="space-y-4 rounded-lg border border-dashed border-input p-10 text-center">
+          <p className="text-sm text-muted-foreground">
             Noch kein Profil vorhanden. Lege eines manuell an oder lade Dokumente hoch, um daraus automatisch eines zu
             generieren.
           </p>
@@ -70,7 +70,7 @@ export function ProfilePageBody({
 
       {!hasProfile && mode === 'documents' && (
         <>
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-muted-foreground">
             Oder{' '}
             <button type="button" className="underline" onClick={() => setCreateOpen(true)}>
               Profil manuell anlegen

@@ -35,7 +35,7 @@ export const PERSONALITY_LABELS: Record<PersonalityTrait, string> = {
   down_to_earth: 'Bodenständig',
 };
 
-export const selectClassName = 'h-8 w-full border border-neutral-300 px-2 text-sm';
+export const selectClassName = 'h-8 w-full border border-input px-2 text-sm';
 
 export type ApplicationOptionsValue = {
   tone: ApplicationTone;

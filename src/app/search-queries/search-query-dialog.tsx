@@ -28,7 +28,7 @@ const INTERVAL_LABELS: Record<NotificationInterval, string> = {
   daily: 'Täglich',
 };
 
-const selectClassName = 'h-8 w-full border border-neutral-300 px-2 text-sm';
+const selectClassName = 'h-8 w-full border border-input px-2 text-sm';
 
 const MAX_RADIUS_KM = 100;
 
@@ -184,7 +184,7 @@ export function SearchQueryDialog({
           <div>
             <div className="flex items-center justify-between">
               <Label htmlFor="radiusKm">Umkreis</Label>
-              <span className="text-sm text-neutral-500">{radiusKm > 0 ? `${radiusKm} km` : 'egal'}</span>
+              <span className="text-sm text-muted-foreground">{radiusKm > 0 ? `${radiusKm} km` : 'egal'}</span>
             </div>
             <Slider
               id="radiusKm"

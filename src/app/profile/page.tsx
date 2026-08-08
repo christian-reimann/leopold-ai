@@ -32,7 +32,7 @@ export default async function ProfilePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-lg font-semibold">Mein Profil</h1>
+      <h1 className="font-heading text-lg font-semibold">Mein Profil</h1>
       <ProfilePageBody
         hasProfile={Boolean(profile)}
         profile={profile?.data ?? EMPTY_PROFILE}

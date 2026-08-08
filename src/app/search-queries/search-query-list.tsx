@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Pause, Play, Plus, RotateCw, Trash2 } from 'lucide-react';
 import { useState, useTransition } from 'react';
 import {
   AlertDialog,
@@ -36,7 +36,7 @@ function formatKeywords(criteria: SearchCriteria): string {
   return criteria.keywords.length > 0 ? criteria.keywords.join(', ') : 'Keine Stichwörter';
 }
 
-function formatDetails(query: SearchQueryRow): string {
+function formatCoreDetails(query: SearchQueryRow): string {
   const { criteria } = query;
   const parts: string[] = [];
   if (criteria.location && criteria.radiusKm) {
@@ -45,9 +45,6 @@ function formatDetails(query: SearchQueryRow): string {
     parts.push(criteria.location);
   } else if (criteria.radiusKm) {
     parts.push(`Umkreis ${criteria.radiusKm}km`);
-  }
-  if (criteria.remote) {
-    parts.push('Nur Remote');
   }
   if (criteria.employmentTypes && criteria.employmentTypes.length > 0) {
     parts.push(criteria.employmentTypes.map((type) => EMPLOYMENT_TYPE_LABELS[type] ?? type).join(', '));
@@ -79,7 +76,7 @@ export function SearchQueryList({ searchQueries }: { searchQueries: SearchQueryR
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Suchaufträge</h1>
+        <h1 className="font-heading text-lg font-semibold">Suchaufträge</h1>
         <Button
           type="button"
           size="icon-xs"
@@ -93,17 +90,20 @@ export function SearchQueryList({ searchQueries }: { searchQueries: SearchQueryR
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      {searchQueries.length === 0 && <p className="text-sm text-neutral-500">Noch keine Suchaufträge angelegt.</p>}
+      {searchQueries.length === 0 && <p className="text-sm text-muted-foreground">Noch keine Suchaufträge angelegt.</p>}
 
       {searchQueries.length > 0 && (
-        <ul className="divide-y divide-neutral-200">
+        <ul className="divide-y divide-border">
           {searchQueries.map((query) => {
             return (
-              <li key={query.id} className="flex items-center justify-between gap-4 px-4 py-3">
+              <li
+                key={query.id}
+                className="@2xl:flex-row @2xl:items-center @2xl:justify-between @2xl:gap-4 flex flex-col gap-2 px-4 py-3"
+              >
                 <button
                   type="button"
                   onClick={() => setDialogTarget({ mode: 'edit', query })}
-                  className="-m-1 flex-1 rounded-md p-1 text-left hover:bg-neutral-50"
+                  className="@2xl:flex-1 -m-1 min-w-0 rounded-md p-1 text-left hover:bg-muted"
                 >
                   <p className="text-base font-medium">
                     {formatKeywords(query.criteria)}{' '}
@@ -119,7 +119,10 @@ export function SearchQueryList({ searchQueries }: { searchQueries: SearchQueryR
                       {query.active ? 'Aktiv' : 'Pausiert'}
                     </Badge>
                   </p>
-                  <p className="text-sm text-neutral-500">{formatDetails(query)}</p>
+                  <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
+                    <span className="whitespace-nowrap">{formatCoreDetails(query)}</span>
+                    {query.criteria.remote && <span className="whitespace-nowrap">· Nur Remote</span>}
+                  </p>
                   {query.criteria.connectors && query.criteria.connectors.length < ALL_CONNECTOR_IDS.length && (
                     <div className="flex items-center gap-1 pt-0.5">
                       {[...query.criteria.connectors]
@@ -138,7 +141,7 @@ export function SearchQueryList({ searchQueries }: { searchQueries: SearchQueryR
                     </div>
                   )}
                 </button>
-                <div className="flex items-center gap-2">
+                <div className="@2xl:justify-end flex shrink-0 flex-wrap items-center justify-start gap-2">
                   <Button
                     type="button"
                     size="sm"
@@ -146,20 +149,29 @@ export function SearchQueryList({ searchQueries }: { searchQueries: SearchQueryR
                     disabled={isPending && pendingAction?.id === query.id}
                     onClick={() => withPending(query.id, 'run', () => runSearchQueryNowAction(query.id))}
                   >
-                    {isPending && pendingAction?.id === query.id && pendingAction.kind === 'run' && (
+                    {isPending && pendingAction?.id === query.id && pendingAction.kind === 'run' ? (
                       <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <RotateCw className="size-3.5" />
                     )}
                     Jetzt ausführen
                   </Button>
                   <Button
                     type="button"
                     size="sm"
-                    variant="ghost"
+                    variant="outline"
                     disabled={isPending && pendingAction?.id === query.id}
                     onClick={() =>
                       withPending(query.id, 'toggle', () => setSearchQueryActiveAction(query.id, !query.active))
                     }
                   >
+                    {isPending && pendingAction?.id === query.id && pendingAction.kind === 'toggle' ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : query.active ? (
+                      <Pause className="size-3.5" />
+                    ) : (
+                      <Play className="size-3.5" />
+                    )}
                     {query.active ? 'Pausieren' : 'Aktivieren'}
                   </Button>
                   <AlertDialog>
@@ -167,9 +179,14 @@ export function SearchQueryList({ searchQueries }: { searchQueries: SearchQueryR
                       <Button
                         type="button"
                         size="sm"
-                        variant="destructive"
+                        variant="outline"
                         disabled={isPending && pendingAction?.id === query.id}
                       >
+                        {isPending && pendingAction?.id === query.id && pendingAction.kind === 'delete' ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="size-3.5" />
+                        )}
                         Löschen
                       </Button>
                     </AlertDialogTrigger>

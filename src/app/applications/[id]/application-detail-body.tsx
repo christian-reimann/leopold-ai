@@ -1,6 +1,6 @@
 'use client';
 
-import { Download, Loader2, Trash2 } from 'lucide-react';
+import { Download, Loader2, RefreshCw, Settings, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { DOC_TYPE_LABELS, type DocType } from '@/core/applications/layout/layout-template';
@@ -107,14 +107,15 @@ export function ApplicationDetailBody({
     <div className="space-y-6">
       <AutoRefresh active={isGenerating} />
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div>
-          <h1 className="text-xl font-semibold">{jobTitle}</h1>
-          <p className="text-sm text-neutral-500">{company}</p>
+          <h1 className="font-heading text-xl font-semibold">{jobTitle}</h1>
+          <p className="text-sm text-muted-foreground">{company}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-start gap-2">
           {isGenerating && <Badge variant="secondary">Wird generiert …</Badge>}
           <Button type="button" variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
+            <Settings className="size-3.5" />
             Einstellungen
           </Button>
           <Button
@@ -124,12 +125,14 @@ export function ApplicationDetailBody({
             onClick={handleRegenerate}
             disabled={isPending || isGenerating}
           >
+            <RefreshCw className="size-3.5" />
             Neu generieren
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button type="button" variant="ghost" size="icon-sm" disabled={isPending} aria-label="Bewerbung löschen">
-                <Trash2 className="size-4" />
+              <Button type="button" variant="outline" size="sm" disabled={isPending}>
+                <Trash2 className="size-3.5" />
+                Bewerbung löschen
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -141,7 +144,7 @@ export function ApplicationDetailBody({
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-                <AlertDialogAction variant="destructive" onClick={handleDelete}>
+                <AlertDialogAction onClick={handleDelete}>
                   Löschen
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -160,7 +163,7 @@ export function ApplicationDetailBody({
           </TabsList>
 
           <TabsContent value="letter">
-            <div className="application-document relative space-y-3 rounded-md border border-neutral-200 bg-white p-10 shadow-sm">
+            <div className="application-document relative space-y-3 rounded-md border border-border bg-white p-10 shadow-sm">
               <PdfDownloadButton
                 className="absolute right-10 top-10"
                 isDownloading={downloadingDoc === 'letter'}
@@ -176,7 +179,7 @@ export function ApplicationDetailBody({
           </TabsContent>
 
           <TabsContent value="cv">
-            <div className="application-document relative space-y-3 rounded-md border border-neutral-200 bg-white p-10 shadow-sm">
+            <div className="application-document relative space-y-3 rounded-md border border-border bg-white p-10 shadow-sm">
               <PdfDownloadButton
                 className="absolute right-10 top-10"
                 isDownloading={downloadingDoc === 'cv'}
