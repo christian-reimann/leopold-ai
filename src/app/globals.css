@@ -88,3 +88,18 @@
     @apply font-sans;
   }
 }
+
+/* AgentPanel ist auf Mobile ein fixed positioniertes Bottom-Sheet (volle Breite) statt eines
+   Resizable-Panels – der Panel-Slot wird auf 0 gezwungen statt versteckt, damit das fixed
+   positionierte Inhalts-Element (das die Bemessung seines Elternteils ignoriert) sichtbar bleibt. */
+@media (max-width: 639.98px) {
+  #agent-panel-slot {
+    flex: 0 0 0px !important;
+    width: 0 !important;
+    min-width: 0 !important;
+  }
+  #main-content-slot {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+  }
+}

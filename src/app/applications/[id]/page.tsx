@@ -1,16 +1,20 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { applicationService } from '@/core/applications/application-service';
 import { jobPostingService } from '@/core/jobs/jobposting-service';
 import { layoutTemplateRegistry } from '@/core/applications/layout/registered-layouts';
+import { getActiveProfileId } from '@/core/profile/active-profile';
 import { profileService } from '@/core/profile/profile-service';
 import { ApplicationDetailBody } from './application-detail-body';
 
 export default async function ApplicationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const application = await applicationService.getById(id);
+  const [application, activeProfileId] = await Promise.all([applicationService.findById(id), getActiveProfileId()]);
   if (!application) {
     notFound();
+  }
+  if (application.profileId !== activeProfileId) {
+    redirect('/applications');
   }
 
   const [job, profile] = await Promise.all([

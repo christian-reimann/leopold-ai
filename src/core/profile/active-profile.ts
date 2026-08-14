@@ -20,7 +20,11 @@ export async function getActiveProfileId(): Promise<string> {
   }
 
   const allProfiles = await profileService.listProfiles();
-  const fallback = allProfiles[0];
+  let fallback = allProfiles[0];
+  if (!fallback) {
+    await profileService.ensureAtLeastOneProfile();
+    [fallback] = await profileService.listProfiles();
+  }
   if (!fallback) {
     throw new Error('Kein Profil vorhanden');
   }

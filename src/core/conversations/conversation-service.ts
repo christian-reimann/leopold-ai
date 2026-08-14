@@ -5,7 +5,7 @@ import { conversations } from '@/db/schema/conversations';
 import { messages } from '@/db/schema/messages';
 
 export class ConversationService {
-  /** Jedes Profil hat genau eine Konversation. */
+
   async getOrCreate(profileId: string): Promise<string> {
     const [existing] = await db
       .select({ id: conversations.id })
@@ -15,11 +15,15 @@ export class ConversationService {
       return existing.id;
     }
 
-    const [created] = await db.insert(conversations).values({ profileId }).returning({ id: conversations.id });
-    if (!created) {
+    const [row] = await db
+      .insert(conversations)
+      .values({ profileId })
+      .onConflictDoUpdate({ target: conversations.profileId, set: { updatedAt: new Date() } })
+      .returning({ id: conversations.id });
+    if (!row) {
       throw new Error('Konversation konnte nicht angelegt werden');
     }
-    return created.id;
+    return row.id;
   }
 
   async clear(profileId: string): Promise<void> {

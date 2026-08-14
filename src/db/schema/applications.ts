@@ -40,8 +40,8 @@ export const applications = pgTable(
     generationStatus: applicationGenerationStatusEnum('generation_status').notNull().default('pending'),
     generationError: text('generation_error'),
     status: applicationStatusEnum('status').notNull().default('draft'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
   },
   (table) => [unique('applications_profile_id_job_id_unique').on(table.profileId, table.jobId)],
 );

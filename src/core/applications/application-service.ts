@@ -45,10 +45,15 @@ export class ApplicationService {
   }
 
   async getById(id: string): Promise<typeof applications.$inferSelect> {
-    const [application] = await db.select().from(applications).where(eq(applications.id, id));
+    const application = await this.findById(id);
     if (!application) {
       throw new Error(`Bewerbung nicht gefunden: ${id}`);
     }
+    return application;
+  }
+
+  async findById(id: string): Promise<typeof applications.$inferSelect | undefined> {
+    const [application] = await db.select().from(applications).where(eq(applications.id, id));
     return application;
   }
 
@@ -72,23 +77,32 @@ export class ApplicationService {
   async updateOptions(id: string, patch: Partial<ApplicationOptions>): Promise<void> {
     await db
       .update(applications)
-      .set({ ...patch, updatedAt: new Date() })
+      .set({ ...patch, updatedAt: new Date().toISOString() })
       .where(eq(applications.id, id));
   }
 
   async updateContent(id: string, patch: { cvContent?: string; letterContent?: string }): Promise<void> {
     await db
       .update(applications)
-      .set({ ...patch, updatedAt: new Date() })
+      .set({ ...patch, updatedAt: new Date().toISOString() })
       .where(eq(applications.id, id));
   }
 
   async regenerate(id: string, instructions?: string): Promise<void> {
+    await this.markPendingGeneration(id);
+    await applicationQueue.enqueueGenerateContent(id, instructions);
+  }
+
+  async regenerateAndWait(id: string, instructions?: string): Promise<void> {
+    await this.markPendingGeneration(id);
+    await applicationQueue.enqueueGenerateContentAndWait(id, instructions);
+  }
+
+  private async markPendingGeneration(id: string): Promise<void> {
     await db
       .update(applications)
-      .set({ generationStatus: 'pending', generationError: null, updatedAt: new Date() })
+      .set({ generationStatus: 'pending', generationError: null, updatedAt: new Date().toISOString() })
       .where(eq(applications.id, id));
-    await applicationQueue.enqueueGenerateContent(id, instructions);
   }
 
   async delete(id: string): Promise<void> {
@@ -98,7 +112,7 @@ export class ApplicationService {
   async generateContent(id: string, instructions?: string): Promise<void> {
     await db
       .update(applications)
-      .set({ generationStatus: 'processing', generationError: null, updatedAt: new Date() })
+      .set({ generationStatus: 'processing', generationError: null, updatedAt: new Date().toISOString() })
       .where(eq(applications.id, id));
 
     try {
@@ -138,7 +152,7 @@ export class ApplicationService {
           cvContent,
           letterContent,
           generationStatus: 'done',
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(eq(applications.id, id));
     } catch (error) {
@@ -147,7 +161,7 @@ export class ApplicationService {
         .set({
           generationStatus: 'failed',
           generationError: error instanceof Error ? error.message : 'Unbekannter Fehler bei der Generierung',
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(eq(applications.id, id));
       throw error;

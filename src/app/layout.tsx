@@ -5,7 +5,7 @@ import { Fraunces, Geist } from 'next/font/google';
 import Image from 'next/image';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import { AgentPanel, PANEL_COLLAPSED_COOKIE } from '@/components/agent/agent-panel';
+import { AgentPanelLayout, PANEL_COLLAPSED_COOKIE } from '@/components/agent/agent-panel-layout';
 import { MainNav } from '@/components/nav/main-nav';
 import { ProfileSwitcher } from '@/components/profile/profile-switcher';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -22,6 +22,7 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
+  await profileService.ensureAtLeastOneProfile();
   const [profiles, activeProfileId, cookieStore] = await Promise.all([
     profileService.listProfiles(),
     getActiveProfileId(),
@@ -52,12 +53,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 </div>
               </nav>
             </header>
-            <div className="flex min-h-0 flex-1">
-              <div className="min-h-0 flex-1 overflow-y-auto">
-                <main className="@container mx-auto max-w-4xl px-6 py-8">{children}</main>
-              </div>
-              <AgentPanel key={activeProfileId} initialCollapsed={panelCollapsed} />
-            </div>
+            <AgentPanelLayout initialCollapsed={panelCollapsed} activeProfileId={activeProfileId}>
+              {children}
+            </AgentPanelLayout>
           </div>
         </TooltipProvider>
       </body>

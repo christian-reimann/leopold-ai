@@ -22,6 +22,27 @@ export class ProfileService {
     return created.id;
   }
 
+  async renameProfile(profileId: string, name: string): Promise<void> {
+    await db.update(profiles).set({ name, updatedAt: new Date() }).where(eq(profiles.id, profileId));
+  }
+
+  /** Legt ein Default-Profil an, falls noch keines existiert. Für den Erststart auf leerer DB. */
+  async ensureAtLeastOneProfile(): Promise<void> {
+    const [existing] = await db.select({ id: profiles.id }).from(profiles).limit(1);
+    if (!existing) {
+      await this.createProfile('Mein Profil');
+    }
+  }
+
+  /** Löscht das Profil samt aller abhängigen Daten (Kaskade). Es muss immer mindestens eines übrig bleiben. */
+  async deleteProfile(profileId: string): Promise<void> {
+    const all = await db.select({ id: profiles.id }).from(profiles);
+    if (all.length <= 1) {
+      throw new Error('Es muss mindestens ein Profil bestehen bleiben.');
+    }
+    await db.delete(profiles).where(eq(profiles.id, profileId));
+  }
+
   async upsertManualProfile(id: string, data: Profile): Promise<void> {
     const embedding = await embeddingClient.embedText(this.embeddingInput(data));
     await db.update(profiles).set({ data, embedding, updatedAt: new Date() }).where(eq(profiles.id, id));

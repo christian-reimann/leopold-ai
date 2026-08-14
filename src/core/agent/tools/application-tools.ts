@@ -58,10 +58,10 @@ export function applicationTools(profileId: string): ToolSet {
 
     regenerateApplicationContent: tool({
       description:
-        'Generiert Anschreiben und Lebenslauf einer Bewerbung neu, optional mit einer zusätzlichen Anweisung (z.B. "mach den Ton lockerer").',
+        'Generiert Anschreiben und Lebenslauf einer Bewerbung neu, optional mit einer zusätzlichen Anweisung (z.B. "mach den Ton lockerer"). Wartet auf den Abschluss der Generierung, kann daher etwas dauern.',
       inputSchema: ApplicationIdSchema.extend({ instructions: z.string().optional() }),
       execute: async ({ applicationId, instructions }) => {
-        await applicationService.regenerate(applicationId, instructions);
+        await applicationService.regenerateAndWait(applicationId, instructions);
         return { success: true };
       },
     }),

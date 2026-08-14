@@ -27,7 +27,7 @@ export function documentTools(profileId: string): ToolSet {
         const storagePath = path.join('storage', 'uploads', `${randomUUID()}-${staged.originalFilename}`);
         await rename(staged.storagePath, path.join(process.cwd(), storagePath));
 
-        const documentId = await documentService.createDocument({
+        const documentId = await documentService.createDocumentAndWait({
           profileId,
           type: documentType,
           storagePath,
@@ -64,10 +64,11 @@ export function documentTools(profileId: string): ToolSet {
     }),
 
     requestProfileExtraction: tool({
-      description: 'Stößt die Profil-Extraktion aus den angegebenen Dokumenten an (läuft asynchron im Hintergrund).',
+      description:
+        'Stößt die Profil-Extraktion aus den angegebenen Dokumenten an und wartet auf deren Abschluss.',
       inputSchema: z.object({ documentIds: z.array(z.uuid()).min(1) }),
       execute: async ({ documentIds }) => {
-        await documentService.requestProfileExtraction(documentIds, profileId);
+        await documentService.requestProfileExtractionAndWait(documentIds, profileId);
         return { success: true };
       },
     }),

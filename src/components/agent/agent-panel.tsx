@@ -14,14 +14,9 @@ function resolveApplicationId(pathname: string): string | undefined {
 }
 
 const transport = new DefaultChatTransport({ api: '/api/chat' });
-export const PANEL_COLLAPSED_COOKIE = 'leopold-panel-collapsed';
-const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
-export function AgentPanel({ initialCollapsed }: { initialCollapsed: boolean }) {
+export function AgentPanel({ collapsed, onToggleCollapsed }: { collapsed: boolean; onToggleCollapsed: () => void }) {
   const [initialMessages, setInitialMessages] = useState<UIMessage[] | null>(null);
-  // Ausgangszustand kommt vom Server (Cookie) statt aus localStorage, damit SSR- und Client-Render
-  // von Anfang an übereinstimmen – kein Aufblitzen des ausgeklappten Panels beim Neuladen.
-  const [collapsed, setCollapsed] = useState(initialCollapsed);
 
   // Wird nur einmal beim Mount geladen (nicht pro Seitenwechsel) – Leopold hat einen
   // einzigen, app-weiten Gesprächsverlauf, auch auf /applications/*-Seiten.
@@ -37,23 +32,15 @@ export function AgentPanel({ initialCollapsed }: { initialCollapsed: boolean }) 
     };
   }, []);
 
-  function toggleCollapsed() {
-    setCollapsed((prev) => {
-      const next = !prev;
-      document.cookie = `${PANEL_COLLAPSED_COOKIE}=${next}; path=/; max-age=${ONE_YEAR_SECONDS}`;
-      return next;
-    });
-  }
-
   if (collapsed) {
     return (
       <>
-        <aside className="hidden h-full w-12 shrink-0 flex-col items-center border-l border-border py-3 sm:flex">
+        <aside className="hidden h-full w-full shrink-0 flex-col items-center border-l border-border py-3 sm:flex">
           <Button
             type="button"
             size="icon-sm"
             className="rounded-full"
-            onClick={toggleCollapsed}
+            onClick={onToggleCollapsed}
             aria-label="Leopold-Panel ausklappen"
           >
             <Bot className="size-5" />
@@ -62,7 +49,7 @@ export function AgentPanel({ initialCollapsed }: { initialCollapsed: boolean }) 
         <Button
           type="button"
           size="icon-lg"
-          onClick={toggleCollapsed}
+          onClick={onToggleCollapsed}
           aria-label="Leopold-Panel öffnen"
           className="fixed right-4 bottom-4 z-50 rounded-full shadow-lg sm:hidden"
         >
@@ -74,11 +61,11 @@ export function AgentPanel({ initialCollapsed }: { initialCollapsed: boolean }) 
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-black/30 sm:hidden" onClick={toggleCollapsed} aria-hidden="true" />
+      <div className="fixed inset-0 z-40 bg-black/30 sm:hidden" onClick={onToggleCollapsed} aria-hidden="true" />
       <aside
         className={cn(
           'fixed inset-x-0 bottom-0 z-50 flex h-[85vh] min-h-0 flex-col overflow-hidden rounded-t-2xl border-t border-border bg-card shadow-xl',
-          'sm:static sm:inset-auto sm:z-auto sm:h-full sm:w-96 sm:shrink-0 sm:rounded-none sm:border-t-0 sm:border-l sm:shadow-none',
+          'sm:static sm:inset-auto sm:z-auto sm:h-full sm:w-full sm:shrink-0 sm:touch-auto sm:rounded-none sm:border-t-0 sm:border-l sm:shadow-none',
         )}
       >
         {initialMessages === null ? (
@@ -89,7 +76,7 @@ export function AgentPanel({ initialCollapsed }: { initialCollapsed: boolean }) 
                 type="button"
                 size="icon-xs"
                 variant="ghost"
-                onClick={toggleCollapsed}
+                onClick={onToggleCollapsed}
                 aria-label="Leopold-Panel einklappen"
               >
                 <ChevronRight className="size-3.5" />
@@ -98,7 +85,7 @@ export function AgentPanel({ initialCollapsed }: { initialCollapsed: boolean }) 
             <p className="p-3 text-sm text-muted-foreground">Lädt …</p>
           </>
         ) : (
-          <AgentPanelReady initialMessages={initialMessages} onCollapse={toggleCollapsed} />
+          <AgentPanelReady initialMessages={initialMessages} onCollapse={onToggleCollapsed} />
         )}
       </aside>
     </>

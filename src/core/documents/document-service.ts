@@ -44,8 +44,29 @@ export class DocumentService {
     return document.id;
   }
 
+  /** Wie {@link createDocument}, wartet aber auf den tatsächlichen Abschluss des Parse-Jobs. */
+  async createDocumentAndWait(input: {
+    profileId: string;
+    type: DocumentType;
+    storagePath: string;
+    originalFilename: string;
+  }): Promise<string> {
+    const [document] = await db.insert(documents).values(input).returning({ id: documents.id });
+    if (!document) {
+      throw new Error('Dokument konnte nicht angelegt werden');
+    }
+
+    await documentQueue.enqueueParseDocumentAndWait(document.id);
+    return document.id;
+  }
+
   async requestProfileExtraction(documentIds: string[], profileId: string): Promise<void> {
     await documentQueue.enqueueExtractProfile(documentIds, profileId);
+  }
+
+  /** Wie {@link requestProfileExtraction}, wartet aber auf den tatsächlichen Abschluss der Extraktion. */
+  async requestProfileExtractionAndWait(documentIds: string[], profileId: string): Promise<void> {
+    await documentQueue.enqueueExtractProfileAndWait(documentIds, profileId);
   }
 
   async listAll(profileId: string): Promise<(typeof documents.$inferSelect)[]> {

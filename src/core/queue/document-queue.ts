@@ -22,8 +22,16 @@ class DocumentQueue extends JobQueue<typeof DOCUMENT_JOB_SCHEMAS> {
     await this.enqueue(DOCUMENT_JOB_NAMES.PARSE_DOCUMENT, { documentId });
   }
 
+  async enqueueParseDocumentAndWait(documentId: string): Promise<void> {
+    await this.enqueueAndWait(DOCUMENT_JOB_NAMES.PARSE_DOCUMENT, { documentId });
+  }
+
   async enqueueExtractProfile(documentIds: string[], profileId: string): Promise<void> {
     await this.enqueue(DOCUMENT_JOB_NAMES.EXTRACT_PROFILE, { documentIds, profileId });
+  }
+
+  async enqueueExtractProfileAndWait(documentIds: string[], profileId: string): Promise<void> {
+    await this.enqueueAndWait(DOCUMENT_JOB_NAMES.EXTRACT_PROFILE, { documentIds, profileId });
   }
 
   async enqueueEmbedDocument(documentId: string): Promise<void> {

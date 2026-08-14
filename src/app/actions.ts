@@ -23,3 +23,23 @@ export async function createProfileAction(name: string): Promise<{ id: string }>
   await switchProfileAction(id);
   return { id };
 }
+
+export async function renameProfileAction(profileId: string, name: string): Promise<void> {
+  await profileService.renameProfile(profileId, name);
+  revalidatePath('/', 'layout');
+}
+
+export async function deleteProfileAction(profileId: string): Promise<void> {
+  await profileService.deleteProfile(profileId);
+
+  const cookieStore = await cookies();
+  const wasActive = cookieStore.get(ACTIVE_PROFILE_COOKIE)?.value === profileId;
+  if (wasActive) {
+    const [remaining] = await profileService.listProfiles();
+    if (remaining) {
+      await switchProfileAction(remaining.id);
+      return;
+    }
+  }
+  revalidatePath('/', 'layout');
+}

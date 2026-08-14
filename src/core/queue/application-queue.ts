@@ -17,6 +17,10 @@ class ApplicationQueue extends JobQueue<typeof APPLICATION_JOB_SCHEMAS> {
   async enqueueGenerateContent(applicationId: string, instructions?: string): Promise<void> {
     await this.enqueue(APPLICATION_JOB_NAMES.GENERATE_CONTENT, { applicationId, instructions });
   }
+
+  async enqueueGenerateContentAndWait(applicationId: string, instructions?: string): Promise<void> {
+    await this.enqueueAndWait(APPLICATION_JOB_NAMES.GENERATE_CONTENT, { applicationId, instructions });
+  }
 }
 
 export const applicationQueue = new ApplicationQueue();
