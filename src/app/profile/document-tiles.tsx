@@ -77,8 +77,8 @@ export function DocumentTiles({
   );
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  // Überbrückt die Lücke zwischen Klick und dem ersten Poll, der den Worker-Status
-  // (profileStatus === 'processing') tatsächlich in der DB sieht.
+  // Bridges the gap between the click and the first poll that actually sees the
+  // worker status (profileStatus === 'processing') in the DB.
   const [awaitingExtraction, setAwaitingExtraction] = useState(false);
 
   const doneDocs = useMemo(() => docs.filter((doc) => doc.status === 'done'), [docs]);

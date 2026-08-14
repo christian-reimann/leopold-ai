@@ -6,12 +6,12 @@ export class ProfileExtractor {
   constructor(private readonly model: LanguageModel = chatModel) {}
 
   /**
-   * Reine strukturierte Extraktion (kein RAG, siehe LEOPOLD-PROJEKTPLAN.md §6):
-   * Der gesamte Dokumenttext geht als Prompt-Kontext direkt ins LLM.
+   * Pure structured extraction (no RAG, see LEOPOLD-PROJEKTPLAN.md §6):
+   * The entire document text goes directly into the LLM as prompt context.
    */
   async extractProfile(documentText: string): Promise<Profile> {
     const context = `Profil-Extraktion (${documentText.length} Zeichen Dokumenttext)`;
-    console.log(`[${new Date().toISOString()}] [llm:profile-extraction] Gestartet: ${context}`);
+    console.log(`[${new Date().toISOString()}] [llm:profile-extraction] Started: ${context}`);
     const start = Date.now();
 
     const { output } = await generateText({
@@ -25,7 +25,7 @@ export class ProfileExtractor {
     });
 
     console.log(
-      `[${new Date().toISOString()}] [llm:profile-extraction] Abgeschlossen: ${context} → "${output.personal.name}" (${Date.now() - start}ms)`,
+      `[${new Date().toISOString()}] [llm:profile-extraction] Completed: ${context} → "${output.personal.name}" (${Date.now() - start}ms)`,
     );
     return output;
   }

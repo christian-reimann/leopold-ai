@@ -15,7 +15,7 @@ export class MatchingService {
     const [job, profile] = await Promise.all([jobPostingService.getById(jobId), profileService.getProfile(profileId)]);
 
     if (!profile?.data || !profile.embedding || !job.embedding) {
-      console.log(`[matching] Kein Profil mit Embedding vorhanden, überspringe Job ${jobId}`);
+      console.log(`[matching] No profile with embedding available, skipping job ${jobId}`);
       return;
     }
 

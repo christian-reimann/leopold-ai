@@ -13,8 +13,8 @@ import type { ApplicationOptions } from '@/shared/schemas/application';
 import type { DocType } from './layout/layout-template';
 import { layoutTemplateRegistry } from './layout/registered-layouts';
 
-// RAG-Kontext für die Generierung stammt aus Lebenslauf/Zertifikaten, nicht aus früheren
-// Anschreiben – die sollen ja gerade neu formuliert werden, nicht kopiert.
+// RAG context for generation comes from the CV/certificates, not from earlier cover
+// letters – those are meant to be reworded, not copied.
 const RAG_DOCUMENT_TYPES = ['cv', 'certificate'] as const;
 
 export class ApplicationService {
@@ -29,7 +29,7 @@ export class ApplicationService {
       .values({ profileId, jobId, ...options })
       .returning({ id: applications.id });
     if (!application) {
-      throw new Error('Bewerbung konnte nicht angelegt werden');
+      throw new Error('Application could not be created');
     }
 
     await applicationQueue.enqueueGenerateContent(application.id);
@@ -47,7 +47,7 @@ export class ApplicationService {
   async getById(id: string): Promise<typeof applications.$inferSelect> {
     const application = await this.findById(id);
     if (!application) {
-      throw new Error(`Bewerbung nicht gefunden: ${id}`);
+      throw new Error(`Application not found: ${id}`);
     }
     return application;
   }
@@ -124,7 +124,7 @@ export class ApplicationService {
       ]);
 
       if (!profile?.data) {
-        throw new Error('Kein aktives Profil vorhanden');
+        throw new Error('No active profile available');
       }
 
       const ragResults = await chunkSearchService.search(`${job.data.title}\n${job.data.description}`, {
@@ -172,12 +172,12 @@ export class ApplicationService {
     const application = await this.getById(id);
     const content = docType === 'cv' ? application.cvContent : application.letterContent;
     if (!content) {
-      throw new Error('Inhalt wurde noch nicht generiert');
+      throw new Error('Content has not been generated yet');
     }
 
     const profile = await profileService.getProfile(application.profileId);
     if (!profile?.data) {
-      throw new Error('Kein aktives Profil vorhanden');
+      throw new Error('No active profile available');
     }
 
     const template = layoutTemplateRegistry.getById(application.layoutTemplate);

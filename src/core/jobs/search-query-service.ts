@@ -12,7 +12,7 @@ export class SearchQueryService {
       .where(eq(searchQueries.id, searchQueryId));
 
     if (!row) {
-      throw new Error(`Suchauftrag nicht gefunden: ${searchQueryId}`);
+      throw new Error(`Search query not found: ${searchQueryId}`);
     }
     return row;
   }
@@ -34,11 +34,11 @@ export class SearchQueryService {
       .values({ profileId, ...input, active: true })
       .returning({ id: searchQueries.id });
     if (!row) {
-      throw new Error('Suchauftrag konnte nicht angelegt werden');
+      throw new Error('Search query could not be created');
     }
 
-    // upsertJobScheduler reiht den ersten Lauf sofort ein (delay=0) – kein zusätzliches
-    // manuelles Einreihen nötig, siehe Kommentar in JobSearchQueue.scheduleSearchQuery.
+    // upsertJobScheduler enqueues the first run immediately (delay=0) – no additional
+    // manual enqueueing needed, see the comment in JobSearchQueue.scheduleSearchQuery.
     await jobSearchQueue.scheduleSearchQuery(row.id, input.interval);
 
     return row.id;
@@ -54,7 +54,7 @@ export class SearchQueryService {
       .where(eq(searchQueries.id, searchQueryId))
       .returning({ active: searchQueries.active });
     if (!row) {
-      throw new Error(`Suchauftrag nicht gefunden: ${searchQueryId}`);
+      throw new Error(`Search query not found: ${searchQueryId}`);
     }
 
     if (row.active) {

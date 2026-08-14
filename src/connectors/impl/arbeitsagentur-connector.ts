@@ -6,8 +6,8 @@ import { BaseConnector } from '../base-connector';
 import type { ConnectorResult } from '../connector';
 
 /**
- * Inoffizielle Schnittstelle der Bundesagentur für Arbeit – die BA bietet dafür keine
- * offizielle API an. Auth über einen öffentlich bekannten, festen Client-Key.
+ * Unofficial interface of the Bundesagentur für Arbeit – the BA does not offer an
+ * official API for this. Auth uses a publicly known, fixed client key.
  */
 const AdresseSchema = z.object({
   plz: z.string().optional(),
@@ -85,8 +85,8 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
   protected async fetchRaw(criteria: SearchCriteria): Promise<ArbeitsagenturRawItem[]> {
     const hits = await this.searchJobs(criteria);
 
-    // Die Suchantwort enthält keine Beschreibung – pro Treffer ein Detail-Request nötig.
-    // Sequenziell statt parallel, um die inoffizielle API nicht zu überlasten.
+    // The search response doesn't contain a description – a detail request is needed per hit.
+    // Sequential instead of parallel, to avoid overloading the unofficial API.
     const items: ArbeitsagenturRawItem[] = [];
     for (const hit of hits) {
       const details = await this.fetchJobDetails(hit.referenznummer);
@@ -101,7 +101,7 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
     return ArbeitsagenturConnector.buildConnectorResult(hit, details);
   }
 
-  // Nutzt this.userAgent -> Instanzmethode, kann nicht statisch sein.
+  // Uses this.userAgent -> instance method, can't be static.
   private headers(): HeadersInit {
     return { 'X-API-Key': ArbeitsagenturConnector.API_KEY, 'User-Agent': this.userAgent };
   }
@@ -109,18 +109,18 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
   private async searchJobs(criteria: SearchCriteria, page = 1): Promise<SearchHit[]> {
     const params = ArbeitsagenturConnector.buildSearchParams(criteria, page);
     const url = `${ArbeitsagenturConnector.BASE_URL}/pc/v6/jobs?${params.toString()}`;
-    console.log(`[${new Date().toISOString()}] [${this.id}] Suchanfrage: ${url}`);
+    console.log(`[${new Date().toISOString()}] [${this.id}] Search request: ${url}`);
 
     const response = await fetch(url, {
       headers: this.headers(),
     });
     if (!response.ok) {
-      throw new Error(`Arbeitsagentur-Jobsuche fehlgeschlagen (${response.status}): ${await response.text()}`);
+      throw new Error(`Arbeitsagentur job search failed (${response.status}): ${await response.text()}`);
     }
 
     const parsed = SearchResponseSchema.safeParse(await response.json());
     if (!parsed.success) {
-      throw new Error(`Arbeitsagentur-Jobsuche: unerwartetes Antwortformat: ${parsed.error.message}`);
+      throw new Error(`Arbeitsagentur job search: unexpected response format: ${parsed.error.message}`);
     }
     return parsed.data.ergebnisliste;
   }
@@ -131,8 +131,8 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
       headers: this.headers(),
     });
     if (!response.ok) {
-      // Einzelne Detailanfrage kann fehlschlagen (z.B. Stelle zwischenzeitlich entfernt) –
-      // das soll nicht die ganze Suche abbrechen, siehe fetchRaw.
+      // A single detail request can fail (e.g. posting removed in the meantime) –
+      // that shouldn't abort the whole search, see fetchRaw.
       return undefined;
     }
 
@@ -140,7 +140,7 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
     return parsed.success ? parsed.data : undefined;
   }
 
-  // Nutzt keine Membervariablen -> statisch.
+  // Doesn't use any member variables -> static.
   private static buildSearchParams(criteria: SearchCriteria, page: number): URLSearchParams {
     const params = new URLSearchParams();
     if (criteria.keywords.length > 0) {
@@ -167,9 +167,9 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
       params.set('arbeitszeit', [...arbeitszeit].join(';'));
     }
 
-    // Nur ein Wert möglich: erster Treffer aus den angeforderten employmentTypes gewinnt.
-    // Ohne spezifischere Anforderung greift der Standard "1" (ARBEIT) – filtert Ausbildung,
-    // Praktikum/Werkstudent und Selbstständigkeit standardmäßig heraus.
+    // Only one value possible: the first hit from the requested employmentTypes wins.
+    // Without a more specific requirement, the default "1" (ARBEIT) applies – filters out
+    // apprenticeships, internships/working students, and self-employment by default.
     const angebotsart =
       (criteria.employmentTypes ?? [])
         .map((type) => ArbeitsagenturConnector.ANGEBOTSART_BY_EMPLOYMENT_TYPE[type])
@@ -199,9 +199,9 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
   }
 
   /**
-   * `stellenangebotsart` ist spezifischer als die arbeitszeit*-Flags (z.B. SELBSTAENDIGKEIT/
-   * PRAKTIKUM_TRAINEE) und hat daher Priorität. AUSBILDUNG hat aktuell keine passende
-   * EmploymentType-Entsprechung und wird bewusst nicht gemappt.
+   * `stellenangebotsart` is more specific than the arbeitszeit* flags (e.g. SELBSTAENDIGKEIT/
+   * PRAKTIKUM_TRAINEE) and therefore takes priority. AUSBILDUNG currently has no matching
+   * EmploymentType equivalent and is deliberately left unmapped.
    */
   private static mapEmploymentType(details: JobDetails): EmploymentType | undefined {
     if (details.stellenangebotsart === 'SELBSTAENDIGKEIT') return 'freelance';
@@ -228,9 +228,9 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
   }
 
   /**
-   * Baut ein ConnectorResult aus Suchtreffer + Detail-Antwort. Gibt `undefined` zurück, wenn
-   * Pflichtfelder (title/company) fehlen – so ein Fall wird übersprungen statt die ganze Suche
-   * abzubrechen (siehe mapResult).
+   * Builds a ConnectorResult from search hit + detail response. Returns `undefined` when
+   * required fields (title/company) are missing – such a case is skipped instead of aborting
+   * the whole search (see mapResult).
    */
   private static buildConnectorResult(searchHit: SearchHit, details: JobDetails): ConnectorResult | undefined {
     const refnr = details.referenznummer ?? searchHit.referenznummer;

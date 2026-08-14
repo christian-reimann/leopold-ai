@@ -1,7 +1,7 @@
 import { pgTable, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { profiles } from './profiles';
 
-// Jedes Profil hat genau eine Konversation, siehe ConversationService.getOrCreate.
+// Each profile has exactly one conversation, see ConversationService.getOrCreate.
 export const conversations = pgTable('conversations', {
   id: uuid('id').primaryKey().defaultRandom(),
   profileId: uuid('profile_id')

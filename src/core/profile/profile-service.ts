@@ -17,7 +17,7 @@ export class ProfileService {
   async createProfile(name: string): Promise<string> {
     const [created] = await db.insert(profiles).values({ name }).returning({ id: profiles.id });
     if (!created) {
-      throw new Error('Profil konnte nicht angelegt werden');
+      throw new Error('Profile could not be created');
     }
     return created.id;
   }
@@ -26,7 +26,7 @@ export class ProfileService {
     await db.update(profiles).set({ name, updatedAt: new Date() }).where(eq(profiles.id, profileId));
   }
 
-  /** Legt ein Default-Profil an, falls noch keines existiert. Für den Erststart auf leerer DB. */
+  /** Creates a default profile if none exists yet. For the initial start on an empty DB. */
   async ensureAtLeastOneProfile(): Promise<void> {
     const [existing] = await db.select({ id: profiles.id }).from(profiles).limit(1);
     if (!existing) {
@@ -34,11 +34,11 @@ export class ProfileService {
     }
   }
 
-  /** Löscht das Profil samt aller abhängigen Daten (Kaskade). Es muss immer mindestens eines übrig bleiben. */
+  /** Deletes the profile along with all dependent data (cascade). At least one profile must always remain. */
   async deleteProfile(profileId: string): Promise<void> {
     const all = await db.select({ id: profiles.id }).from(profiles);
     if (all.length <= 1) {
-      throw new Error('Es muss mindestens ein Profil bestehen bleiben.');
+      throw new Error('At least one profile must remain.');
     }
     await db.delete(profiles).where(eq(profiles.id, profileId));
   }
@@ -48,7 +48,7 @@ export class ProfileService {
     await db.update(profiles).set({ data, embedding, updatedAt: new Date() }).where(eq(profiles.id, id));
   }
 
-  /** Markiert das Profil als "processing". Für `DocumentService.extractProfileFromDocuments`. */
+  /** Marks the profile as "processing". For `DocumentService.extractProfileFromDocuments`. */
   async beginExtraction(profileId: string): Promise<void> {
     await db
       .update(profiles)

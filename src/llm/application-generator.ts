@@ -28,10 +28,10 @@ const LANGUAGE_LABELS: Record<ApplicationLanguage, string> = {
 const ALLOWED_HTML_HINT =
   'Gib valides, einfaches HTML zurück (nur die Tags p, ul, li, strong, em, h3 verwenden, keine Inline-Styles, kein <html>/<body>-Wrapper, kein Markdown, keine Code-Fences).';
 
-// Nicht an Anfang/Ende verankert: Claude packt Anschreiben/CV manchmal in einen
-// Code-Fence-Block, hängt aber zusätzlich Prosa davor (Einleitung) oder danach
-// (z.B. eine "**Anmerkung:**" zur eigenen Vorgehensweise) an, die nicht Teil des
-// Dokuments sein soll.
+// Not anchored to start/end: Claude sometimes wraps the cover letter/CV in a
+// code fence block, but additionally appends prose before (introduction) or after
+// (e.g. a "**Note:**" about its own approach) that shouldn't be part of the
+// document.
 const CODE_FENCE_PATTERN = /```[a-z]*\n([\s\S]*?)```/i;
 
 function stripCodeFence(text: string): string {
@@ -53,7 +53,7 @@ export class ApplicationGenerator {
 
   async generateLetter(input: ApplicationGenerationInput): Promise<string> {
     const context = `Anschreiben für Job "${input.job.title}" bei ${input.job.company}`;
-    console.log(`[${new Date().toISOString()}] [llm:application-generator] Generierung gestartet: ${context}`);
+    console.log(`[${new Date().toISOString()}] [llm:application-generator] Generation started: ${context}`);
     const start = Date.now();
 
     const { text } = await generateText({
@@ -68,14 +68,14 @@ export class ApplicationGenerator {
     });
 
     console.log(
-      `[${new Date().toISOString()}] [llm:application-generator] Generierung abgeschlossen: ${context} (${Date.now() - start}ms)`,
+      `[${new Date().toISOString()}] [llm:application-generator] Generation completed: ${context} (${Date.now() - start}ms)`,
     );
     return stripCodeFence(text.trim());
   }
 
   async generateCv(input: ApplicationGenerationInput): Promise<string> {
     const context = `Lebenslauf für Job "${input.job.title}" bei ${input.job.company}`;
-    console.log(`[${new Date().toISOString()}] [llm:application-generator] Generierung gestartet: ${context}`);
+    console.log(`[${new Date().toISOString()}] [llm:application-generator] Generation started: ${context}`);
     const start = Date.now();
 
     const { text } = await generateText({
@@ -90,7 +90,7 @@ export class ApplicationGenerator {
     });
 
     console.log(
-      `[${new Date().toISOString()}] [llm:application-generator] Generierung abgeschlossen: ${context} (${Date.now() - start}ms)`,
+      `[${new Date().toISOString()}] [llm:application-generator] Generation completed: ${context} (${Date.now() - start}ms)`,
     );
     return stripCodeFence(text.trim());
   }

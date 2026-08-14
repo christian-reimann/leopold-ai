@@ -6,7 +6,7 @@ export class LayoutTemplateRegistry {
 
   register(template: LayoutTemplate): void {
     if (this.templates.has(template.id)) {
-      throw new Error(`Layout-Vorlage mit id "${template.id}" ist bereits registriert.`);
+      throw new Error(`Layout template with id "${template.id}" is already registered.`);
     }
     this.templates.set(template.id, template);
   }
@@ -18,7 +18,7 @@ export class LayoutTemplateRegistry {
   getById(id: ApplicationLayoutId): LayoutTemplate {
     const template = this.templates.get(id);
     if (!template) {
-      throw new Error(`Layout-Vorlage nicht gefunden: ${id}`);
+      throw new Error(`Layout template not found: ${id}`);
     }
     return template;
   }

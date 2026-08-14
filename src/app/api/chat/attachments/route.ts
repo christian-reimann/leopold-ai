@@ -7,9 +7,9 @@ import { getActiveProfileId } from '@/core/profile/active-profile';
 
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
-// Kein dedizierter Cleanup-Job für verwaiste Chat-Uploads (Anhänge, die nie per
-// addDocumentToProfile übernommen wurden) – stattdessen räumt jeder neue Upload
-// beiläufig alte Dateien mit auf. Reicht für den MVP-Rahmen (Single-User, geringes Volumen).
+// No dedicated cleanup job for orphaned chat uploads (attachments that were never
+// picked up via addDocumentToProfile) – instead, each new upload incidentally cleans
+// up old files along the way. Sufficient for the MVP scope (single user, low volume).
 async function cleanupStale(): Promise<void> {
   const entries = await readdir(CHAT_ATTACHMENTS_DIR).catch(() => []);
   const now = Date.now();

@@ -8,11 +8,11 @@ import { AgentPanel } from './agent-panel';
 export const PANEL_COLLAPSED_COOKIE = 'leopold-panel-collapsed';
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
-// Entspricht der vorherigen fixen Breite (w-12 / w-96). Der Kollaps-Zustand ist bewusst
-// unabhängig vom Panel-internen Constraint-Solver: Auf schmalen (Mobile-)Gruppenbreiten kann
-// minSize (320px) ohnehin nicht erfüllt werden, wodurch die Bibliothek das Panel selbstständig
-// kollabieren würde – das AgentPanel rendert auf Mobile aber ein eigenständiges, fixed
-// positioniertes Bottom-Sheet/FAB, das mit der Panel-Breite nichts zu tun hat.
+// Corresponds to the previous fixed width (w-12 / w-96). The collapsed state is deliberately
+// independent of the panel's internal constraint solver: at narrow (mobile) group widths,
+// minSize (320px) can't be satisfied anyway, which would make the library collapse the panel
+// on its own – but on mobile, AgentPanel renders its own fixed-positioned bottom
+// sheet/FAB that has nothing to do with the panel width.
 const AGENT_PANEL_COLLAPSED_SIZE = 48;
 const AGENT_PANEL_DEFAULT_SIZE = 384;
 const AGENT_PANEL_MIN_SIZE = 320;
@@ -30,7 +30,7 @@ export function AgentPanelLayout({
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const panelRef = useRef<PanelImperativeHandle>(null);
 
-  // Umgekehrte Richtung: Toggle-Button (bzw. initialer Cookie-Wert) treibt die Panel-Breite.
+  // Reverse direction: toggle button (or initial cookie value) drives the panel width.
   useEffect(() => {
     if (collapsed) {
       panelRef.current?.collapse();
@@ -40,9 +40,9 @@ export function AgentPanelLayout({
     document.cookie = `${PANEL_COLLAPSED_COOKIE}=${collapsed}; path=/; max-age=${ONE_YEAR_SECONDS}`;
   }, [collapsed]);
 
-  // Vorwärtsrichtung: Zieht man die Handle über minSize hinaus, kollabiert die Bibliothek das
-  // Panel selbst – das muss in unseren State zurückgespiegelt werden, sonst zeigt AgentPanel
-  // weiter den vollen Inhalt in der schmalen Box.
+  // Forward direction: if you drag the handle past minSize, the library collapses the
+  // panel itself – that has to be mirrored back into our state, otherwise AgentPanel
+  // keeps showing the full content in the narrow box.
   function handlePanelResize() {
     if (typeof window !== 'undefined' && window.matchMedia('(max-width: 639.98px)').matches) return;
     const nowCollapsed = panelRef.current?.isCollapsed() ?? false;

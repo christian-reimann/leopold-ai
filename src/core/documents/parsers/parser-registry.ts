@@ -10,7 +10,7 @@ export class ParserRegistry {
   async parse(buffer: Buffer, extension: string): Promise<string> {
     const parser = this.findParser(extension);
     if (!parser) {
-      throw new Error(`Nicht unterstütztes Dateiformat: ${extension}`);
+      throw new Error(`Unsupported file format: ${extension}`);
     }
     return parser.parse(buffer, extension);
   }

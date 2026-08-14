@@ -27,7 +27,7 @@ export async function uploadDocument(formData: FormData): Promise<void> {
 
   const totalSize = files.reduce((sum, file) => sum + file.size, 0);
   if (totalSize > MAX_TOTAL_SIZE_BYTES) {
-    throw new Error('Gesamtgröße aller Dateien überschreitet 25 MB.');
+    throw new Error('Total size of all files exceeds 25 MB.');
   }
 
   const profileId = await getActiveProfileId();
@@ -35,12 +35,12 @@ export async function uploadDocument(formData: FormData): Promise<void> {
 
   for (const file of files) {
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      throw new Error(`Datei zu groß (max. 10 MB): ${file.name}`);
+      throw new Error(`File too large (max. 10 MB): ${file.name}`);
     }
 
     const extension = path.extname(file.name).toLowerCase();
     if (!documentService.isSupportedDocumentExtension(extension)) {
-      throw new Error(`Nicht unterstütztes Dateiformat: ${extension}`);
+      throw new Error(`Unsupported file format: ${extension}`);
     }
 
     const storagePath = path.join('storage', 'uploads', `${randomUUID()}-${file.name}`);

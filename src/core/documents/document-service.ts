@@ -18,9 +18,9 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
 };
 
 /**
- * Chunking-Strategie: Bewerbungsunterlagen sind kurz und
- * bereits strukturiert (Absätze, Abschnitte), daher genügt ein einfaches
- * absatzbasiertes Packen bis zu einer Zielgröße.
+ * Chunking strategy: application documents are short and
+ * already structured (paragraphs, sections), so simple
+ * paragraph-based packing up to a target size is sufficient.
  */
 const TARGET_CHUNK_CHARS = 1500;
 
@@ -37,14 +37,14 @@ export class DocumentService {
   }): Promise<string> {
     const [document] = await db.insert(documents).values(input).returning({ id: documents.id });
     if (!document) {
-      throw new Error('Dokument konnte nicht angelegt werden');
+      throw new Error('Document could not be created');
     }
 
     await documentQueue.enqueueParseDocument(document.id);
     return document.id;
   }
 
-  /** Wie {@link createDocument}, wartet aber auf den tatsächlichen Abschluss des Parse-Jobs. */
+  /** Like {@link createDocument}, but waits for the parse job to actually finish. */
   async createDocumentAndWait(input: {
     profileId: string;
     type: DocumentType;
@@ -53,7 +53,7 @@ export class DocumentService {
   }): Promise<string> {
     const [document] = await db.insert(documents).values(input).returning({ id: documents.id });
     if (!document) {
-      throw new Error('Dokument konnte nicht angelegt werden');
+      throw new Error('Document could not be created');
     }
 
     await documentQueue.enqueueParseDocumentAndWait(document.id);
@@ -64,7 +64,7 @@ export class DocumentService {
     await documentQueue.enqueueExtractProfile(documentIds, profileId);
   }
 
-  /** Wie {@link requestProfileExtraction}, wartet aber auf den tatsächlichen Abschluss der Extraktion. */
+  /** Like {@link requestProfileExtraction}, but waits for the extraction to actually finish. */
   async requestProfileExtractionAndWait(documentIds: string[], profileId: string): Promise<void> {
     await documentQueue.enqueueExtractProfileAndWait(documentIds, profileId);
   }
@@ -77,7 +77,7 @@ export class DocumentService {
     await db.update(documents).set({ type, updatedAt: new Date() }).where(eq(documents.id, documentId));
   }
 
-  /** Löscht die DB-Zeile und gibt den `storagePath` zurück, damit der Aufrufer die Datei entfernen kann. */
+  /** Deletes the DB row and returns the `storagePath` so the caller can remove the file. */
   async deleteDocument(documentId: string): Promise<string | undefined> {
     const [document] = await db.select().from(documents).where(eq(documents.id, documentId));
     if (!document) {
@@ -91,7 +91,7 @@ export class DocumentService {
   async parseDocumentById(documentId: string): Promise<void> {
     const [document] = await db.select().from(documents).where(eq(documents.id, documentId));
     if (!document) {
-      throw new Error(`Dokument nicht gefunden: ${documentId}`);
+      throw new Error(`Document not found: ${documentId}`);
     }
 
     await db
@@ -102,7 +102,7 @@ export class DocumentService {
     try {
       const extension = path.extname(document.storagePath).toLowerCase();
       if (!parserRegistry.isSupported(extension)) {
-        throw new Error(`Nicht unterstütztes Dateiformat: ${extension}`);
+        throw new Error(`Unsupported file format: ${extension}`);
       }
 
       const buffer = await readFile(path.resolve(document.storagePath));
@@ -130,7 +130,7 @@ export class DocumentService {
   async embedDocumentById(documentId: string): Promise<void> {
     const [document] = await db.select().from(documents).where(eq(documents.id, documentId));
     if (!document) {
-      throw new Error(`Dokument nicht gefunden: ${documentId}`);
+      throw new Error(`Document not found: ${documentId}`);
     }
 
     await db
@@ -140,13 +140,13 @@ export class DocumentService {
 
     try {
       if (!document.extractedText) {
-        throw new Error('Dokument wurde noch nicht geparst');
+        throw new Error('Document has not been parsed yet');
       }
 
       const chunks = this.chunkText(document.extractedText);
       const embeddings = chunks.length > 0 ? await embeddingClient.embedTexts(chunks) : [];
 
-      // Idempotent: bestehende Chunks (z.B. aus einem vorherigen Lauf) ersetzen.
+      // Idempotent: replaces existing chunks (e.g. from a previous run).
       await db.transaction(async (tx) => {
         await tx.delete(documentChunks).where(eq(documentChunks.documentId, documentId));
         if (chunks.length > 0) {
@@ -189,11 +189,11 @@ export class DocumentService {
 
       const missingIds = documentIds.filter((id) => !docs.some((doc) => doc.id === id));
       if (missingIds.length > 0) {
-        throw new Error(`Dokument(e) nicht gefunden: ${missingIds.join(', ')}`);
+        throw new Error(`Document(s) not found: ${missingIds.join(', ')}`);
       }
       const unparsed = docs.filter((doc) => !doc.extractedText);
       if (unparsed.length > 0) {
-        throw new Error(`Dokument(e) wurden noch nicht geparst: ${unparsed.map((doc) => doc.id).join(', ')}`);
+        throw new Error(`Document(s) have not been parsed yet: ${unparsed.map((doc) => doc.id).join(', ')}`);
       }
 
       const combinedText = docs

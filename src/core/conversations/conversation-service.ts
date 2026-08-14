@@ -21,7 +21,7 @@ export class ConversationService {
       .onConflictDoUpdate({ target: conversations.profileId, set: { updatedAt: new Date() } })
       .returning({ id: conversations.id });
     if (!row) {
-      throw new Error('Konversation konnte nicht angelegt werden');
+      throw new Error('Conversation could not be created');
     }
     return row.id;
   }
@@ -37,7 +37,7 @@ export class ConversationService {
       .from(conversations)
       .where(eq(conversations.id, conversationId));
     if (!row) {
-      throw new Error(`Konversation nicht gefunden: ${conversationId}`);
+      throw new Error(`Conversation not found: ${conversationId}`);
     }
     return row.profileId;
   }
@@ -53,8 +53,8 @@ export class ConversationService {
   }
 
   async appendMessages(conversationId: string, newMessages: UIMessage[]): Promise<void> {
-    // 'system' kommt hier nie vor (System-Prompt wird separat gesetzt, s.o.), wird trotzdem
-    // defensiv gefiltert statt das Enum stillschweigend falsch zu belegen.
+    // 'system' never occurs here (the system prompt is set separately, see above), but it's
+    // still filtered defensively instead of silently mis-assigning the enum.
     const persistable = newMessages.filter(
       (message): message is UIMessage & { role: 'user' | 'assistant' } =>
         message.role === 'user' || message.role === 'assistant',
@@ -64,10 +64,10 @@ export class ConversationService {
     }
 
     await db.transaction(async (tx) => {
-      // Upsert statt Insert: nach einer Tool-Approval wird dieselbe Assistant-Nachricht
-      // (gleiche id) erneut übergeben, jetzt mit aufgelöstem Tool-Ergebnis statt der
-      // ursprünglichen approval-requested-Teile – das darf keinen Duplicate-Key werfen,
-      // sondern muss die vorhandene Zeile aktualisieren.
+      // Upsert instead of insert: after a tool approval, the same assistant message
+      // (same id) is passed in again, now with the resolved tool result instead of the
+      // original approval-requested parts – this must not throw a duplicate-key error,
+      // but should update the existing row instead.
       await tx
         .insert(messages)
         .values(

@@ -4,9 +4,9 @@ import { profileService } from './profile-service';
 export const ACTIVE_PROFILE_COOKIE = 'active_profile_id';
 
 /**
- * Liest niemals über einen Server-Component-Render hinweg (kein `cookies().set`, das ist dort
- * verboten) – falls das Cookie fehlt oder auf ein gelöschtes Profil zeigt, wird nur der Fallback
- * zurückgegeben, nicht persistiert. Persistiert wird ausschließlich über `switchProfileAction`.
+ * Never persists across a Server Component render (no `cookies().set`, which is forbidden
+ * there) – if the cookie is missing or points to a deleted profile, only the fallback is
+ * returned, not persisted. Persisting happens exclusively via `switchProfileAction`.
  */
 export async function getActiveProfileId(): Promise<string> {
   const cookieStore = await cookies();
@@ -26,7 +26,7 @@ export async function getActiveProfileId(): Promise<string> {
     [fallback] = await profileService.listProfiles();
   }
   if (!fallback) {
-    throw new Error('Kein Profil vorhanden');
+    throw new Error('No profile available');
   }
   return fallback.id;
 }

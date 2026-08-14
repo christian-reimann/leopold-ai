@@ -1,12 +1,11 @@
 /**
- * Embedding-Modellwahl (§7 im Projektplan): bge-m3, 1024 Dimensionen.
- * Läuft lokal über Ollama, gute mehrsprachige/deutsche Qualität, passt zum
- * `EMBEDDING_DIMENSIONS`-Default im DB-Schema (@/db/constants).
+ * Embedding model choice (§7 in the project plan): bge-m3, 1024 dimensions.
+ * Runs locally via Ollama, good multilingual/German quality, matches the
+ * `EMBEDDING_DIMENSIONS` default in the DB schema (@/db/constants).
  *
- * Ollama wird bewusst nicht über die AI-SDK-Provider-Abstraktion angebunden:
- * für einen einzelnen lokalen Embedding-Endpunkt ist ein schlanker direkter
- * Aufruf der nativen Ollama-API einfacher zu lesen als eine zusätzliche
- * Provider-Dependency.
+ * Ollama is deliberately not wired up through the AI SDK provider abstraction:
+ * for a single local embedding endpoint, a lean direct call to the native
+ * Ollama API is easier to read than an additional provider dependency.
  */
 const DEFAULT_BASE_URL = 'http://localhost:11434';
 const EMBEDDING_MODEL = 'bge-m3';
@@ -32,7 +31,7 @@ export class EmbeddingClient {
   async embedText(text: string): Promise<number[]> {
     const [embedding] = await this.callOllamaEmbed([text]);
     if (!embedding) {
-      throw new Error('Ollama hat kein Embedding zurückgegeben');
+      throw new Error('Ollama did not return an embedding');
     }
     return embedding;
   }
@@ -45,7 +44,7 @@ export class EmbeddingClient {
     });
 
     if (!response.ok) {
-      throw new Error(`Ollama-Embedding fehlgeschlagen (${response.status}): ${await response.text()}`);
+      throw new Error(`Ollama embedding failed (${response.status}): ${await response.text()}`);
     }
 
     const { embeddings } = (await response.json()) as OllamaEmbedResponse;

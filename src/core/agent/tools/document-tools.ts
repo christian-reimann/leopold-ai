@@ -19,7 +19,7 @@ export function documentTools(profileId: string): ToolSet {
         const staged = await resolveStagedAttachment(attachmentId);
         if (staged.profileId !== profileId) {
           throw new Error(
-            'Anhang gehört zu einem anderen Profil (evtl. wurde das aktive Profil zwischenzeitlich gewechselt).',
+            'Attachment belongs to a different profile (the active profile may have been switched in the meantime).',
           );
         }
 

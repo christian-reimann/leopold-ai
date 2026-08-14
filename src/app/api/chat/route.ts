@@ -4,9 +4,9 @@ import { agentService } from '@/core/agent/agent-service';
 import { conversationService } from '@/core/conversations/conversation-service';
 import { getActiveProfileId } from '@/core/profile/active-profile';
 
-// `messages` kommt vom useChat-Client (Default-Transport schickt den kompletten lokalen
-// Nachrichtenverlauf mit) – server-autoritativ wird trotzdem nur die letzte (neue)
-// Nutzer-Nachricht übernommen, der Rest der Historie kommt aus der DB (agent-service.ts).
+// `messages` comes from the useChat client (the default transport sends the entire
+// local message history) – server-authoritatively, though, only the last (new)
+// user message is used, the rest of the history comes from the DB (agent-service.ts).
 const ChatRequestSchema = z.object({
   messages: z.array(z.custom<UIMessage>()).min(1),
   applicationId: z.uuid().optional(),

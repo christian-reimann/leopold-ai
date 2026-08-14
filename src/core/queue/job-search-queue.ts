@@ -11,9 +11,9 @@ const JOB_SEARCH_JOB_SCHEMAS = {
 } as const;
 
 /**
- * Es gibt keinen Push/Webhook von den Connector-Quellen – "instant" heißt hier praktisch
- * "stündlich pollen" statt täglich, nicht wirklich sofort. Bewusst nicht kürzer getaktet,
- * um die (teils inoffiziellen) Connector-APIs nicht zu überlasten.
+ * There is no push/webhook from the connector sources – "instant" here practically means
+ * "polling hourly" instead of daily, not really instant. Deliberately not set to a shorter
+ * interval, to avoid overloading the (partly unofficial) connector APIs.
  */
 const INTERVAL_MS: Record<NotificationInterval, number> = {
   instant: 60 * 60 * 1000,
@@ -38,10 +38,9 @@ class JobSearchQueue extends JobQueue<typeof JOB_SEARCH_JOB_SCHEMAS> {
   }
 
   /**
-   * Legt einen BullMQ Job Scheduler an oder aktualisiert ihn (gleicher Key = Upsert). Live
-   * verifiziert (2026-07): der erste Lauf wird sofort (delay=0) eingereiht, erst die
-   * darauffolgenden Läufe sind um `every` versetzt – kein zusätzliches manuelles Einreihen
-   * beim Anlegen nötig.
+   * Creates or updates a BullMQ job scheduler (same key = upsert). Verified live
+   * (2026-07): the first run is enqueued immediately (delay=0), only subsequent
+   * runs are offset by `every` – no additional manual enqueueing needed on creation.
    */
   async scheduleSearchQuery(searchQueryId: string, interval: NotificationInterval): Promise<void> {
     await this.upsertScheduler(

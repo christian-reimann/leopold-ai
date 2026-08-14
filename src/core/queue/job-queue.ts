@@ -3,11 +3,11 @@ import type { z } from 'zod';
 import { redisConnection } from './connection';
 
 /**
- * Generischer Wrapper um eine BullMQ-Queue: validiert Payloads gegen die pro Job-Name
- * hinterlegten Zod-Schemas, bevor sie eingereiht werden. `enqueue`/`upsertScheduler` sind
- * `protected` – konkrete Queues (siehe `document-queue.ts`/`job-search-queue.ts`) erweitern
- * diese Klasse und stellen darüber hinaus benannte `enqueueX`-Methoden für ihre jeweiligen
- * Jobs bereit, statt die generische API nach außen zu reichen.
+ * Generic wrapper around a BullMQ queue: validates payloads against the Zod schemas
+ * registered per job name before enqueueing them. `enqueue`/`upsertScheduler` are
+ * `protected` – concrete queues (see `document-queue.ts`/`job-search-queue.ts`) extend
+ * this class and additionally provide named `enqueueX` methods for their respective
+ * jobs, instead of exposing the generic API externally.
  */
 export abstract class JobQueue<TPayloadMap extends Record<string, z.ZodType>> {
   private readonly queue: Queue;
@@ -28,8 +28,8 @@ export abstract class JobQueue<TPayloadMap extends Record<string, z.ZodType>> {
     await this.queue.add(jobName, data);
   }
 
-  // Wartet auf den tatsächlichen Abschluss des Jobs (z.B. damit ein UI-Spinner die reale
-  // Laufzeit statt nur des Einreihens abbildet), statt wie `enqueue` sofort zurückzukehren.
+  // Waits for the job to actually finish (e.g. so a UI spinner reflects the real
+  // runtime instead of just the enqueueing), instead of returning immediately like `enqueue`.
   protected async enqueueAndWait<K extends keyof TPayloadMap & string>(
     jobName: K,
     payload: z.infer<TPayloadMap[K]>,
@@ -56,9 +56,9 @@ export abstract class JobQueue<TPayloadMap extends Record<string, z.ZodType>> {
     await this.queue.upsertJobScheduler(schedulerId, repeat, { name: jobName, data });
   }
 
-  // `noUncheckedIndexedAccess` kennt bei generischem `K extends keyof TPayloadMap` nicht,
-  // dass jeder gültige Key auch tatsächlich einen Wert hat – daher hier gebündelt einmal
-  // nicht-null behauptet statt an jeder Aufrufstelle.
+  // With generic `K extends keyof TPayloadMap`, `noUncheckedIndexedAccess` doesn't know
+  // that every valid key actually has a value – so it's asserted non-null here once,
+  // bundled, instead of at every call site.
   private schemaFor<K extends keyof TPayloadMap & string>(jobName: K): TPayloadMap[K] {
     return this.schemas[jobName]!;
   }

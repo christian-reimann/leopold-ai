@@ -2,9 +2,9 @@ import { extractText, getDocumentProxy, renderPageAsImage } from 'unpdf';
 import { visionTranscriber } from '@/llm/vision-extraction';
 import type { DocumentParser } from './document-parser';
 
-// Unterhalb dieser Zeichenzahl pro Seite gilt ein PDF als ohne Textlayer (Scan/Bild).
+// Below this character count per page, a PDF is considered to have no text layer (scan/image).
 const MIN_TEXT_LENGTH_PER_PAGE = 20;
-// Kostenschutz: verhindert unbegrenzt viele Vision-Calls für sehr lange Scans.
+// Cost guard: prevents unbounded Vision calls for very long scans.
 const MAX_SCANNED_PDF_PAGES = 10;
 
 type PdfProxy = Awaited<ReturnType<typeof getDocumentProxy>>;
@@ -22,12 +22,12 @@ export class PdfParser implements DocumentParser {
       return text;
     }
 
-    // Kein (ausreichender) Textlayer gefunden: vermutlich gescanntes/bildbasiertes PDF.
-    // Fallback macht diesen sonst kostenlosen, deterministischen Schritt bewusst
-    // kostenpflichtig (Anthropic API) und nicht-deterministisch.
+    // No (sufficient) text layer found: likely a scanned/image-based PDF.
+    // The fallback deliberately turns this otherwise free, deterministic step into a
+    // paid (Anthropic API) and non-deterministic one.
     if (totalPages > MAX_SCANNED_PDF_PAGES) {
       throw new Error(
-        `Gescanntes PDF mit ${totalPages} Seiten überschreitet das Limit von ${MAX_SCANNED_PDF_PAGES} Seiten für Vision-Transkription`,
+        `Scanned PDF with ${totalPages} pages exceeds the limit of ${MAX_SCANNED_PDF_PAGES} pages for vision transcription`,
       );
     }
 

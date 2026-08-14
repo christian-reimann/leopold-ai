@@ -8,7 +8,7 @@ export class VisionTranscriber {
 
   async transcribeImage(image: Buffer, mediaType: ImageMediaType): Promise<string> {
     const context = `Bildtranskription (${mediaType}, ${image.length} Bytes)`;
-    console.log(`[${new Date().toISOString()}] [llm:vision-extraction] Gestartet: ${context}`);
+    console.log(`[${new Date().toISOString()}] [llm:vision-extraction] Started: ${context}`);
     const start = Date.now();
 
     const { text } = await generateText({
@@ -28,7 +28,7 @@ export class VisionTranscriber {
     });
 
     console.log(
-      `[${new Date().toISOString()}] [llm:vision-extraction] Abgeschlossen: ${context} (${text.length} Zeichen, ${Date.now() - start}ms)`,
+      `[${new Date().toISOString()}] [llm:vision-extraction] Completed: ${context} (${text.length} characters, ${Date.now() - start}ms)`,
     );
     return text;
   }

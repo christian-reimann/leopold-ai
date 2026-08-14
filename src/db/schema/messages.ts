@@ -2,22 +2,22 @@ import type { UIMessage } from 'ai';
 import { index, jsonb, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { conversations } from './conversations';
 
-// System-Prompt wird nie persistiert (siehe core/agent/system-prompt.ts), daher kein 'system'-Wert.
+// The system prompt is never persisted (see core/agent/system-prompt.ts), hence no 'system' value.
 export const messageRoleEnum = pgEnum('message_role', ['user', 'assistant']);
 
 export const messages = pgTable(
   'messages',
   {
-    // AI SDKs generateId() liefert keine UUIDs, sondern eigene IDs (z.B. "msg-xxxx") – daher
-    // `text` statt `uuid`, und die ID kommt vom Aufrufer statt per defaultRandom() generiert zu
-    // werden, damit sie mit der Client-seitigen UIMessage-ID übereinstimmt.
+    // The AI SDK's generateId() doesn't produce UUIDs but its own IDs (e.g. "msg-xxxx") – hence
+    // `text` instead of `uuid`, and the ID comes from the caller instead of being generated via
+    // defaultRandom(), so it matches the client-side UIMessage ID.
     id: text('id').primaryKey(),
     conversationId: uuid('conversation_id')
       .notNull()
       .references(() => conversations.id, { onDelete: 'cascade' }),
     role: messageRoleEnum('role').notNull(),
-    // Bildet UIMessage['parts'] direkt ab, damit conversationService.listMessages() ohne
-    // Transformation als initialMessages an useChat durchgereicht werden kann.
+    // Maps UIMessage['parts'] directly so conversationService.listMessages() can be passed
+    // through to useChat as initialMessages without transformation.
     parts: jsonb('parts').$type<UIMessage['parts']>().notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },

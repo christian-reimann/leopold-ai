@@ -49,10 +49,10 @@ export class AgentService {
       stream: result.stream,
       tools,
       originalMessages: history,
-      // Ohne das bekommt eine neue Assistant-Antwort keine id (leerer String), weil
-      // `originalMessages` mit einer User-Nachricht endet, nicht mit einer Assistant-Nachricht
-      // (siehe UIMessageStreamOptions.generateMessageId) – das kollidiert dann als Duplicate-Key
-      // mit der nächsten Assistant-Nachricht, die ebenfalls id='' bekommt.
+      // Without this, a new assistant reply gets no id (empty string), because
+      // `originalMessages` ends with a user message, not an assistant message
+      // (see UIMessageStreamOptions.generateMessageId) – that then collides as a duplicate key
+      // with the next assistant message, which also gets id=''.
       generateMessageId: generateId,
       onEnd: async ({ responseMessage }) => {
         await conversationService.appendMessages(conversationId, [responseMessage]);

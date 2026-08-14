@@ -6,9 +6,9 @@ import { BaseConnector } from '../base-connector';
 import type { ConnectorResult } from '../connector';
 
 /**
- * Inoffizieller Connector für get-in-it.de. Die Seite bietet keine Stichwortsuche – Jobs werden
- * ausschließlich über feste Berufsfelder (thematicPriority) sowie weitere ID-basierte Facetten
- * gefiltert. Freie `keywords` werden daher über ein Alias-Wörterbuch auf Berufsfelder gemappt.
+ * Unofficial connector for get-in-it.de. The site offers no keyword search – jobs are
+ * filtered exclusively via fixed career fields (thematicPriority) plus further ID-based
+ * facets. Free-text `keywords` are therefore mapped to career fields via an alias dictionary.
  */
 const CareerRefSchema = z.object({
   id: z.number(),
@@ -69,8 +69,8 @@ interface GetInItRawItem {
   detail: JobDetail;
 }
 
-// Feste Berufsfeld-IDs von get-in-it.de (siehe __NEXT_DATA__.props.initialState.thematicPriorities)
-// mit Alias-Begriffen, gegen die freie Suchkeywords gematcht werden.
+// Fixed career field IDs from get-in-it.de (see __NEXT_DATA__.props.initialState.thematicPriorities)
+// with alias terms that free-text search keywords are matched against.
 const THEMATIC_PRIORITIES: ReadonlyArray<{ id: number; aliases: readonly string[] }> = [
   {
     id: 36,
@@ -190,8 +190,8 @@ const EMPLOYMENT_TYPE_BY_SCHEMA: Partial<Record<string, EmploymentType>> = {
   INTERN: 'internship',
 };
 
-// Begrenzte Menge an Entities, die in get-in-it's JSON-LD-Beschreibungen vorkommen (kein HTML,
-// nur benannte Entities – siehe extractDescription).
+// Limited set of entities that occur in get-in-it's JSON-LD descriptions (no HTML,
+// only named entities – see extractDescription).
 const HTML_ENTITIES: Record<string, string> = {
   '&amp;': '&',
   '&auml;': 'ä',
@@ -223,10 +223,10 @@ export class GetInItConnector extends BaseConnector<GetInItRawItem> {
     const thematicPriorityIds = GetInItConnector.matchThematicPriorities(criteria.keywords);
     const listings = await this.searchListings(thematicPriorityIds);
 
-    // Bei Berufsfeld-Treffer wird dem Feld vertraut statt zusätzlich auf Titel-Substrings zu
-    // filtern – die Seite ist bewusst auf "Berufsfeld statt Jobtitel" ausgelegt. Ohne Treffer
-    // wird über alle Felder gesucht und lokal nach Titel gefiltert, um die Ergebnisliste
-    // handhabbar zu halten.
+    // When a career field matches, the field is trusted instead of additionally filtering by
+    // title substrings – the site is deliberately designed around "career field instead of job
+    // title". Without a match, all fields are searched and filtered locally by title, to keep
+    // the result list manageable.
     const keywordFiltered =
       thematicPriorityIds.length > 0
         ? listings
@@ -276,11 +276,11 @@ export class GetInItConnector extends BaseConnector<GetInItRawItem> {
   }
 
   /**
-   * Die serverseitig gerenderte /jobsuche-Seite liefert nur die erste Seite (ca. 39 Treffer) –
-   * für vollständige Ergebnisse wird stattdessen die REST-API genutzt, über die das Frontend
-   * seinen "Weitere Jobs laden"-Button lädt. Nach oben begrenzt (MAX_SEARCH_RESULTS), damit eine
-   * Suche ohne erkanntes Berufsfeld (dann bundesweit tausende Treffer) nicht unbegrenzt viele
-   * Seiten nachlädt.
+   * The server-rendered /jobsuche page only returns the first page (~39 hits) – for
+   * complete results, the REST API is used instead, the same one the frontend's
+   * "load more jobs" button uses. Capped from above (MAX_SEARCH_RESULTS), so that a
+   * search without a recognized career field (which then yields thousands of hits
+   * nationwide) doesn't load an unbounded number of pages.
    */
   private async searchListings(thematicPriorityIds: number[]): Promise<JobListing[]> {
     const listings: JobListing[] = [];
@@ -288,18 +288,18 @@ export class GetInItConnector extends BaseConnector<GetInItRawItem> {
 
     while (start < GetInItConnector.MAX_SEARCH_RESULTS) {
       const url = GetInItConnector.buildSearchApiUrl(thematicPriorityIds, start, GetInItConnector.SEARCH_PAGE_SIZE);
-      console.log(`[${new Date().toISOString()}] [${this.id}] Suchanfrage: ${url}`);
+      console.log(`[${new Date().toISOString()}] [${this.id}] Search request: ${url}`);
 
       const response = await fetch(url, {
         headers: { 'User-Agent': this.userAgent, 'X-Requested-With': 'XMLHttpRequest' },
       });
       if (!response.ok) {
-        throw new Error(`get-in-it-Suche fehlgeschlagen (${response.status}): ${await response.text()}`);
+        throw new Error(`get-in-it search failed (${response.status}): ${await response.text()}`);
       }
 
       const parsed = SearchApiResponseSchema.safeParse(await response.json());
       if (!parsed.success) {
-        throw new Error(`get-in-it-Suche: unerwartetes Antwortformat: ${parsed.error.message}`);
+        throw new Error(`get-in-it search: unexpected response format: ${parsed.error.message}`);
       }
 
       const page = parsed.data.items.results;
@@ -315,12 +315,12 @@ export class GetInItConnector extends BaseConnector<GetInItRawItem> {
 
   private async fetchJobDetail(id: number): Promise<JobDetail | undefined> {
     const url = `${GetInItConnector.BASE_URL}/jobsuche/p${id}`;
-    console.log(`[${new Date().toISOString()}] [${this.id}] Detailanfrage: ${url}`);
+    console.log(`[${new Date().toISOString()}] [${this.id}] Detail request: ${url}`);
 
     const response = await fetch(url, { headers: { 'User-Agent': this.userAgent } });
     if (!response.ok) {
-      // Einzelne Detailanfrage kann fehlschlagen (z.B. Stelle zwischenzeitlich entfernt) – das
-      // soll nicht die ganze Suche abbrechen, siehe fetchRaw.
+      // A single detail request can fail (e.g. posting removed in the meantime) – that
+      // shouldn't abort the whole search, see fetchRaw.
       return undefined;
     }
 
@@ -382,7 +382,7 @@ export class GetInItConnector extends BaseConnector<GetInItRawItem> {
     if (keyword === alias) {
       return true;
     }
-    // Kurze Begriffe nur exakt matchen, um Zufallstreffer als Teilstring zu vermeiden (z.B. "ui").
+    // Only match short terms exactly, to avoid random substring hits (e.g. "ui").
     if (Math.min(keyword.length, alias.length) < 3) {
       return false;
     }
@@ -422,9 +422,9 @@ export class GetInItConnector extends BaseConnector<GetInItRawItem> {
   }
 
   /**
-   * `employmentType` aus dem JSON-LD ist unzuverlässig (steht z.B. auch bei "Werkstudent"-Titeln
-   * meist auf FULL_TIME) – Titel-Hinweise haben daher Priorität, das Schema dient nur als
-   * Fallback für die vz/tz-Unterscheidung.
+   * `employmentType` from the JSON-LD is unreliable (e.g. it's usually FULL_TIME even for
+   * "Werkstudent" titles) – title hints therefore take priority, the schema only serves as
+   * a fallback for the vz/tz distinction.
    */
   private static mapEmploymentType(title: string, schemaType: string | undefined): EmploymentType | undefined {
     const normalizedTitle = GetInItConnector.normalize(title);
@@ -457,7 +457,7 @@ export class GetInItConnector extends BaseConnector<GetInItRawItem> {
     const match = /<script id="__NEXT_DATA__"[^>]*>(.*?)<\/script>/s.exec(html);
     const json = match?.[1];
     if (!json) {
-      throw new Error('get-in-it-Suche: __NEXT_DATA__ nicht gefunden – Seitenstruktur hat sich vermutlich geändert.');
+      throw new Error('get-in-it search: __NEXT_DATA__ not found – page structure has likely changed.');
     }
     return JSON.parse(json);
   }

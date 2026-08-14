@@ -1,56 +1,56 @@
 # Leopold
 
-Leopold ist ein KI-Agent zur Unterstützung bei Jobsuche und Bewerbung: Dokumente
-verwalten, Profildaten extrahieren, Jobangebote automatisch finden und per
-LLM-Matching bewerten, Bewerbungen (Lebenslauf + Anschreiben) generieren und als
-PDF exportieren – gesteuert über einen app-weiten Chat-Agenten mit Tool-Calling.
+Leopold is an AI agent for job search and application support: manage documents,
+extract profile data, automatically find job postings and score them via LLM
+matching, generate applications (CV + cover letter) and export them as PDF –
+all steerable through an app-wide chat agent with tool-calling.
 
-Entstanden als Lernprojekt für KI-Agenten, Workflows, RAG und LLMs.
+Built as a learning project for AI agents, workflows, RAG and LLMs.
 
-## Tech-Stack
+## Tech Stack
 
 - **Next.js** (App Router, server-first) + **TypeScript**
-- **PostgreSQL + pgvector** (Daten & Vektor-Suche in einer DB), **Drizzle** als ORM
-- **BullMQ (Redis)** für Hintergrundjobs (Scraping, Embedding, Matching, PDF-Export)
-- **Ollama** (lokal, `bge-m3`) für Embeddings, **Claude** (via Vercel AI SDK) für
-  Generierung, Extraktion und den Agenten-Chat
-- **TipTap** (WYSIWYG-Editor), **Puppeteer** (HTML→PDF), **Playwright**
-  (Scraping-Connectors)
+- **PostgreSQL + pgvector** (data & vector search in one DB), **Drizzle** as ORM
+- **BullMQ (Redis)** for background jobs (scraping, embedding, matching, PDF export)
+- **Ollama** (local, `bge-m3`) for embeddings, **Claude** (via Vercel AI SDK) for
+  generation, extraction and the agent chat
+- **TipTap** (WYSIWYG editor), **Puppeteer** (HTML→PDF), **Playwright**
+  (scraping connectors)
 
 ## Setup
 
-Voraussetzungen: Node (siehe `.nvmrc`), pnpm, Docker.
+Prerequisites: Node (see `.nvmrc`), pnpm, Docker.
 
 ```bash
 pnpm install
 
-# Postgres, Redis, Ollama starten
+# Start Postgres, Redis, Ollama
 pnpm db:up
 
-# Embedding-Modell einmalig in Ollama laden
+# Load the embedding model into Ollama once
 docker exec -it $(docker compose ps -q ollama) ollama pull bge-m3
 
 cp .env.example .env
-# .env ausfüllen: mindestens ANTHROPIC_API_KEY
+# fill in .env: at minimum ANTHROPIC_API_KEY
 
 pnpm db:migrate
 ```
 
-`.env`-Variablen sind in `.env.example` dokumentiert.
+`.env` variables are documented in `.env.example`.
 
-## Entwicklung
+## Development
 
 ```bash
-pnpm dev           # Next.js Dev-Server
-pnpm worker:dev     # BullMQ-Worker (Scraping, Embedding, Matching, PDF-Export)
+pnpm dev           # Next.js dev server
+pnpm worker:dev     # BullMQ worker (scraping, embedding, matching, PDF export)
 ```
 
-Beide Prozesse laufen unabhängig voneinander und kommunizieren ausschließlich
-über Datenbank und Queue (siehe Projektplan, §4).
+Both processes run independently and communicate exclusively via the
+database and queue (see project plan, §4).
 
-Weitere Befehle: `pnpm lint`, `pnpm typecheck`, `pnpm format`, `pnpm db:studio`
+More commands: `pnpm lint`, `pnpm typecheck`, `pnpm format`, `pnpm db:studio`
 (Drizzle Studio).
 
-## Lizenz
+## License
 
 [MIT](./LICENSE)

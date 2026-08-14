@@ -18,7 +18,7 @@ export async function resolveStagedAttachment(attachmentId: string): Promise<Sta
   try {
     meta = JSON.parse(await readFile(metaPath, 'utf-8'));
   } catch {
-    throw new Error('Anhang nicht gefunden (evtl. abgelaufen) – bitte erneut hochladen.');
+    throw new Error('Attachment not found (may have expired) – please upload again.');
   }
 
   return {

@@ -4,8 +4,8 @@ import type { SearchCriteria } from '@/shared/schemas/search-query';
 export type { ConnectorResult } from '@/shared/schemas/connector-result';
 
 /**
- * Einheitliche Schnittstelle, die jeder Adapter implementiert – egal ob öffentliche API
- * oder Playwright-Scraper
+ * Unified interface implemented by every adapter – whether it's a public API
+ * or a Playwright scraper
  */
 export interface JobConnector {
   id: string;

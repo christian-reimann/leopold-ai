@@ -6,8 +6,8 @@ import { ApplicationOptionsSchema } from '@/shared/schemas/application';
 const ApplicationIdSchema = z.object({ applicationId: z.uuid() });
 
 /**
- * Bewusst kein `createApplication`-Tool – Erstanlage bleibt dem "Neue Bewerbung"-Dialog
- * vorbehalten (Job-Auswahl ist eine explizite UI-Entscheidung).
+ * Deliberately no `createApplication` tool – initial creation stays reserved for the
+ * "New Application" dialog (job selection is an explicit UI decision).
  */
 export function applicationTools(profileId: string): ToolSet {
   return {

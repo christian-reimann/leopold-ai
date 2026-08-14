@@ -6,8 +6,8 @@ import { BaseConnector } from '../base-connector';
 import type { ConnectorResult } from '../connector';
 
 /**
- * Inoffizieller Connector für kimeta.de. Kimeta bietet keine öffentliche API – die robots.txt
- * schließt /search und /api für alle Bots aus.
+ * Unofficial connector for kimeta.de. Kimeta does not offer a public API – its robots.txt
+ * excludes /search and /api for all bots.
  */
 const JobOfferFeaturesSchema = z.object({
   isPaid: z.boolean().optional(),
@@ -53,19 +53,19 @@ export class KimetaConnector extends BaseConnector<JobOffer> {
 
   protected async fetchRaw(criteria: SearchCriteria): Promise<JobOffer[]> {
     const url = KimetaConnector.buildSearchUrl(criteria);
-    console.log(`[${new Date().toISOString()}] [${this.id}] Suchanfrage: ${url}`);
+    console.log(`[${new Date().toISOString()}] [${this.id}] Search request: ${url}`);
 
     const response = await fetch(url, {
       headers: { 'User-Agent': this.userAgent },
     });
     if (!response.ok) {
-      throw new Error(`kimeta-Suche fehlgeschlagen (${response.status}): ${await response.text()}`);
+      throw new Error(`kimeta search failed (${response.status}): ${await response.text()}`);
     }
 
     const payload = KimetaConnector.extractPpaPayload(await response.text());
     const parsed = PpaPayloadSchema.safeParse(payload);
     if (!parsed.success) {
-      throw new Error(`kimeta-Suche: unerwartetes Antwortformat: ${parsed.error.message}`);
+      throw new Error(`kimeta search: unexpected response format: ${parsed.error.message}`);
     }
     return parsed.data.searchResults.jobOffers;
   }
@@ -93,8 +93,8 @@ export class KimetaConnector extends BaseConnector<JobOffer> {
     };
   }
 
-  // Kimeta liefert location teils mit eingebetteten Tabs/Zeilenumbrüchen (z.B. PLZ und Ort
-  // durch mehrzeiligen Whitespace getrennt) – für die Anzeige auf einen Space normalisieren.
+  // Kimeta sometimes delivers location with embedded tabs/line breaks (e.g. postal code and
+  // city separated by multi-line whitespace) – normalize to a single space for display.
   private static normalizeLocation(location: string | undefined): string | undefined {
     const normalized = location?.replace(/\s+/g, ' ').trim();
     return normalized || undefined;
@@ -130,8 +130,8 @@ export class KimetaConnector extends BaseConnector<JobOffer> {
   }
 
   /**
-   * `employmentType` ist spezifischer als die hours-Angabe (Vollzeit/Teilzeit) und hat daher
-   * Priorität, analog zum Mapping im ArbeitsagenturConnector.
+   * `employmentType` is more specific than the hours field (Vollzeit/Teilzeit) and therefore
+   * takes priority, analogous to the mapping in ArbeitsagenturConnector.
    */
   private static mapEmploymentType(offer: JobOffer): EmploymentType | undefined {
     const types = offer.employmentType ?? [];
@@ -147,22 +147,22 @@ export class KimetaConnector extends BaseConnector<JobOffer> {
   }
 
   /**
-   * Kimeta rendert Suchergebnisse serverseitig und bettet sie als Array von Zeichencodes
-   * (statt als reguläres JSON) in __NEXT_DATA__ ein. String.fromCharCode.apply/spread würde bei
-   * den hier üblichen zehntausenden Elementen die Argument-Stack-Grenze sprengen, daher
-   * elementweise über map/join dekodieren.
+   * Kimeta renders search results server-side and embeds them as an array of character codes
+   * (instead of regular JSON) in __NEXT_DATA__. String.fromCharCode.apply/spread would blow the
+   * argument stack limit at the tens of thousands of elements typical here, so decode
+   * element-by-element via map/join instead.
    */
   private static extractPpaPayload(html: string): unknown {
     const match = /<script id="__NEXT_DATA__"[^>]*>(.*?)<\/script>/s.exec(html);
     const nextDataJson = match?.[1];
     if (!nextDataJson) {
-      throw new Error('kimeta-Suche: __NEXT_DATA__ nicht gefunden – Seitenstruktur hat sich vermutlich geändert.');
+      throw new Error('kimeta search: __NEXT_DATA__ not found – page structure has likely changed.');
     }
 
     const nextData: unknown = JSON.parse(nextDataJson);
     const ppa = (nextData as { props?: { pageProps?: { __PPA__?: unknown } } })?.props?.pageProps?.__PPA__;
     if (!Array.isArray(ppa)) {
-      throw new Error('kimeta-Suche: __PPA__-Payload nicht gefunden – Seitenstruktur hat sich vermutlich geändert.');
+      throw new Error('kimeta search: __PPA__ payload not found – page structure has likely changed.');
     }
 
     const json = (ppa as number[]).map((code) => String.fromCharCode(code)).join('');

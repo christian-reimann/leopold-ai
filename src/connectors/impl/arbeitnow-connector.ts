@@ -13,7 +13,7 @@ const JobListingSchema = z.object({
   description: z.string().optional(),
   remote: z.boolean().optional(),
   url: z.string().optional(),
-  // arbeitnow serialisiert ein leeres job_types-Array gelegentlich als `{}` statt `[]` (PHP-Eigenheit).
+  // arbeitnow occasionally serializes an empty job_types array as `{}` instead of `[]` (PHP quirk).
   job_types: z.preprocess((value) => (Array.isArray(value) ? value : []), z.array(z.string())).optional(),
   location: z.string().optional(),
   created_at: z.number(),
@@ -85,16 +85,16 @@ export class ArbeitnowConnector extends BaseConnector<JobListing> {
       }
 
       const url = `${ArbeitnowConnector.BASE_URL}?page=${page}`;
-      console.log(`[${new Date().toISOString()}] [${this.id}] Suchanfrage: ${url}`);
+      console.log(`[${new Date().toISOString()}] [${this.id}] Search request: ${url}`);
 
       const response = await fetch(url, { headers: { 'User-Agent': this.userAgent } });
       if (!response.ok) {
-        throw new Error(`arbeitnow-Suche fehlgeschlagen (${response.status}): ${await response.text()}`);
+        throw new Error(`arbeitnow search failed (${response.status}): ${await response.text()}`);
       }
 
       const parsed = JobBoardResponseSchema.safeParse(await response.json());
       if (!parsed.success) {
-        throw new Error(`arbeitnow-Suche: unerwartetes Antwortformat: ${parsed.error.message}`);
+        throw new Error(`arbeitnow search: unexpected response format: ${parsed.error.message}`);
       }
       const pageItems = parsed.data.data;
       if (pageItems.length === 0) {
@@ -141,8 +141,8 @@ export class ArbeitnowConnector extends BaseConnector<JobListing> {
     const haystack = ArbeitnowConnector.normalize(
       `${listing.title ?? ''} ${ArbeitnowConnector.stripHtml(listing.description ?? '')}`,
     );
-    // Jedes Keyword muss treffen, aber pro Keyword reicht bereits ein Synonym (z.B. "Softwareentwickler"
-    // matcht auch "Software Engineer") – arbeitnow-Anzeigen sind oft englisch formuliert.
+    // Every keyword must match, but for each keyword a single synonym is already enough (e.g. "Softwareentwickler"
+    // also matches "Software Engineer") – arbeitnow listings are often written in English.
     return criteria.keywords.every((keyword) => {
       const synonyms = expandKeyword(ArbeitnowConnector.normalize(keyword));
       return synonyms.some((term) => haystack.includes(term));

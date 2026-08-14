@@ -16,7 +16,7 @@ export class ImageParser implements DocumentParser {
   async parse(buffer: Buffer, extension: string): Promise<string> {
     const mediaType = MEDIA_TYPE_BY_EXTENSION[extension];
     if (!mediaType) {
-      throw new Error(`Nicht unterstütztes Bildformat: ${extension}`);
+      throw new Error(`Unsupported image format: ${extension}`);
     }
     return visionTranscriber.transcribeImage(buffer, mediaType);
   }

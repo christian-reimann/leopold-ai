@@ -7,9 +7,9 @@ import type { ConnectorResult } from '@/shared/schemas/connector-result';
 import type { JobPosting } from '@/shared/schemas/job-posting';
 
 /**
- * Schwellwert für Dedup-Ebene 2 (Cross-Source-Near-Duplicate via Embedding-Cosine-Similarity).
- * Heuristik, kein exakter Wert – bei zu vielen False Positives (unterschiedliche Stellen werden
- * fälschlich verlinkt) erhöhen, bei zu vielen übersehenen Duplikaten senken.
+ * Threshold for dedup level 2 (cross-source near-duplicate via embedding cosine similarity).
+ * A heuristic, not an exact value – raise it if there are too many false positives (different
+ * postings get incorrectly linked), lower it if too many duplicates are missed.
  */
 const DUPLICATE_SIMILARITY_THRESHOLD = 0.95;
 
@@ -26,7 +26,7 @@ export class JobPostingService {
   async getById(jobId: string): Promise<typeof jobPostings.$inferSelect> {
     const [posting] = await db.select().from(jobPostings).where(eq(jobPostings.id, jobId));
     if (!posting) {
-      throw new Error(`Job-Posting nicht gefunden: ${jobId}`);
+      throw new Error(`Job posting not found: ${jobId}`);
     }
     return posting;
   }
@@ -52,8 +52,8 @@ export class JobPostingService {
       .where(and(eq(jobPostings.sourceConnector, connectorId), eq(jobPostings.sourceId, sourceId)));
 
     if (existing) {
-      // Re-Poll derselben Quelle (Dedup-Ebene 1): Inhalte aktualisieren. duplicateOfId bleibt
-      // unangetastet – wurde beim Erstanlegen einmalig über Dedup-Ebene 2 bestimmt.
+      // Re-poll of the same source (dedup level 1): update content. duplicateOfId stays
+      // untouched – it was determined once via dedup level 2 when first created.
       await db
         .update(jobPostings)
         .set({ dedupeHash, rawHtml, data: posting, updatedAt: new Date() })
@@ -81,9 +81,9 @@ export class JobPostingService {
   }
 
   /**
-   * Dedup-Ebene 2: quellenübergreifendes Near-Duplicate. Nur gegen andere Quellen (`ne`) und nur
-   * gegen bereits kanonische Zeilen (`duplicateOfId IS NULL`) vergleichen – sonst könnten sich
-   * Ketten bilden, die auf ein Duplikat statt auf die kanonische Stelle verweisen.
+   * Dedup level 2: cross-source near-duplicate. Only compare against other sources (`ne`) and
+   * only against already-canonical rows (`duplicateOfId IS NULL`) – otherwise chains could form
+   * that point to a duplicate instead of the canonical posting.
    */
   private async findNearDuplicate(connectorId: string, embedding: number[]): Promise<string | null> {
     const similarity = sql<number>`1 - (${cosineDistance(jobPostings.embedding, embedding)})`;
@@ -109,9 +109,9 @@ export class JobPostingService {
   }
 
   /**
-   * Billiger Content-Hash über die identitätsstiftenden Felder – dient nur als Kandidaten-Signal
-   * (kein Unique-Constraint mehr, siehe `job_postings`-Schema). Die eigentliche Cross-Source-Dedup
-   * läuft über Embedding-Ähnlichkeit (Dedup-Ebene 2, siehe `findNearDuplicate`).
+   * Cheap content hash over the identity-defining fields – serves only as a candidate signal
+   * (no longer a unique constraint, see the `job_postings` schema). The actual cross-source dedup
+   * runs via embedding similarity (dedup level 2, see `findNearDuplicate`).
    */
   private computeDedupeHash(posting: JobPosting): string {
     const basis = [

@@ -6,4 +6,4 @@ new DocumentWorker();
 new JobSearchWorker();
 new ApplicationWorker();
 
-console.log(`[${new Date().toISOString()}] [worker] gestartet, warte auf Jobs …`);
+console.log(`[${new Date().toISOString()}] [worker] started, waiting for jobs …`);

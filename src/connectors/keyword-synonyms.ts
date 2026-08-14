@@ -1,8 +1,8 @@
 /**
- * Gruppen austauschbarer Berufsbezeichnungen (v.a. deutsch/englisch), damit Connectors ohne
- * eigene Facettensuche (z.B. arbeitnow) nicht auf den exakten Wortlaut eines Suchbegriffs
- * angewiesen sind. Passt ein Suchbegriff auf eine Gruppe, gilt jeder Begriff der Gruppe als
- * Treffer statt nur der Literal-String.
+ * Groups of interchangeable job titles (mainly German/English), so connectors without their
+ * own facet search (e.g. arbeitnow) don't have to rely on the exact wording of a search term.
+ * If a search term matches a group, every term in the group counts as a match instead of just
+ * the literal string.
  */
 export const KEYWORD_SYNONYM_GROUPS: ReadonlyArray<readonly string[]> = [
   [
@@ -39,7 +39,7 @@ function matchesAlias(keyword: string, alias: string): boolean {
   if (keyword === alias) {
     return true;
   }
-  // Kurze Begriffe nur exakt matchen, um Zufallstreffer als Teilstring zu vermeiden (z.B. "ui").
+  // Only match short terms exactly, to avoid accidental substring hits (e.g. "ui").
   if (Math.min(keyword.length, alias.length) < 3) {
     return false;
   }
@@ -47,9 +47,9 @@ function matchesAlias(keyword: string, alias: string): boolean {
 }
 
 /**
- * Liefert alle austauschbaren Begriffe für ein normalisiertes Keyword. Passt es auf keine
- * bekannte Gruppe, wird nur das Keyword selbst zurückgegeben (reines Substring-Matching bleibt
- * damit für nicht abgedeckte Begriffe wie zuvor erhalten).
+ * Returns all interchangeable terms for a normalized keyword. If it doesn't match any known
+ * group, only the keyword itself is returned (plain substring matching is thus preserved as
+ * before for uncovered terms).
  */
 export function expandKeyword(normalizedKeyword: string): readonly string[] {
   const group = KEYWORD_SYNONYM_GROUPS.find((aliases) =>

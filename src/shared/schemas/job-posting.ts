@@ -11,8 +11,8 @@ export const EmploymentTypeSchema = z.enum([
 export type EmploymentType = z.infer<typeof EmploymentTypeSchema>;
 
 /**
- * Einheitliches Ziel-Schema für Jobangebote, auf das jeder Connector-Adapter
- * (öffentliche API, Bezahl-API, Playwright-Scraper) mappt.
+ * Unified target schema for job postings that every connector adapter
+ * (public API, paid API, Playwright scraper) maps to.
  */
 export const JobPostingSchema = z.object({
   title: z.string(),

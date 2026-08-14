@@ -9,7 +9,7 @@ export class MatchJudge {
 
   async judge(profile: Profile, posting: JobPosting): Promise<MatchResult> {
     const context = `Job "${posting.title}" bei ${posting.company}`;
-    console.log(`[${new Date().toISOString()}] [llm:match-judge] Bewertung gestartet für ${context}`);
+    console.log(`[${new Date().toISOString()}] [llm:match-judge] Scoring started for ${context}`);
     const start = Date.now();
 
     const { output } = await generateText({
@@ -40,7 +40,7 @@ export class MatchJudge {
     });
 
     console.log(
-      `[${new Date().toISOString()}] [llm:match-judge] Bewertung abgeschlossen für ${context} (Score: ${output.scoreMeToJob}, ${Date.now() - start}ms)`,
+      `[${new Date().toISOString()}] [llm:match-judge] Scoring completed for ${context} (score: ${output.scoreMeToJob}, ${Date.now() - start}ms)`,
     );
     return output;
   }

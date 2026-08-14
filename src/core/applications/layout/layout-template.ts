@@ -13,12 +13,12 @@ export type RenderDocumentInput = {
 };
 
 /**
- * `renderDocument` liefert ein vollständiges, eigenständiges HTML-Dokument
- * (inkl. <html>/<head>/<body>) für den Puppeteer-PDF-Export – jeweils für genau ein
- * Dokument (Anschreiben ODER Lebenslauf, getrennter Export). `editorStyles` liefert
- * dieselben visuellen Regeln als CSS-Fragment, unter `rootSelector` skopiert, damit der
- * Editor im Browser direkt im Layout-Look editierbar ist (kein separates Vorschau-Dokument
- * mehr).
+ * `renderDocument` returns a complete, self-contained HTML document
+ * (incl. <html>/<head>/<body>) for the Puppeteer PDF export – always for exactly one
+ * document (cover letter OR CV, exported separately). `editorStyles` provides the same
+ * visual rules as a CSS fragment, scoped under `rootSelector`, so the editor in the
+ * browser can be edited directly in the layout's look (no separate preview document
+ * anymore).
  */
 export interface LayoutTemplate {
   readonly id: ApplicationLayoutId;

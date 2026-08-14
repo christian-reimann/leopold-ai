@@ -18,8 +18,8 @@ const transport = new DefaultChatTransport({ api: '/api/chat' });
 export function AgentPanel({ collapsed, onToggleCollapsed }: { collapsed: boolean; onToggleCollapsed: () => void }) {
   const [initialMessages, setInitialMessages] = useState<UIMessage[] | null>(null);
 
-  // Wird nur einmal beim Mount geladen (nicht pro Seitenwechsel) – Leopold hat einen
-  // einzigen, app-weiten Gesprächsverlauf, auch auf /applications/*-Seiten.
+  // Only loaded once on mount (not per page change) – Leopold has a single,
+  // app-wide conversation history, even on /applications/* pages.
   useEffect(() => {
     let cancelled = false;
     fetch('/api/conversations')

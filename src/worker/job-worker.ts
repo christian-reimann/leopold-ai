@@ -8,10 +8,10 @@ function timestamp(): string {
 }
 
 /**
- * Generischer Wrapper um einen BullMQ-Worker: dispatcht eingehende Jobs anhand von `job.name`
- * an die pro Job-Name hinterlegten Handler und protokolliert Start/Ende/Fehler. Konkrete Worker
- * (siehe `document-worker.ts`/`job-search-worker.ts`) erweitern diese Klasse und übergeben ihre
- * Handler als private Methoden statt die Dispatch-Logik nach außen zu reichen.
+ * Generic wrapper around a BullMQ worker: dispatches incoming jobs based on `job.name`
+ * to the handlers registered per job name and logs start/end/errors. Concrete workers
+ * (see `document-worker.ts`/`job-search-worker.ts`) extend this class and pass their
+ * handlers as private methods instead of exposing the dispatch logic externally.
  */
 export abstract class JobWorker<TJobNames extends Record<string, string>> {
   private readonly worker: Worker;
@@ -28,18 +28,18 @@ export abstract class JobWorker<TJobNames extends Record<string, string>> {
   private async dispatch(job: Job): Promise<void> {
     const handler = this.handlers[job.name as TJobNames[keyof TJobNames]];
     if (!handler) {
-      throw new Error(`Unbekannter Job-Typ: ${job.name}`);
+      throw new Error(`Unknown job type: ${job.name}`);
     }
     await handler(job);
   }
 
   private attachLogging(): void {
     this.worker.on('active', (job) => {
-      console.log(`[${timestamp()}] [${this.label}] ${job.name} (${job.id}) gestartet`, job.data);
+      console.log(`[${timestamp()}] [${this.label}] ${job.name} (${job.id}) started`, job.data);
     });
 
     this.worker.on('completed', (job) => {
-      const message = `[${timestamp()}] [${this.label}] ${job.name} (${job.id}) abgeschlossen`;
+      const message = `[${timestamp()}] [${this.label}] ${job.name} (${job.id}) completed`;
       if (job.returnvalue === undefined) {
         console.log(message);
       } else {
@@ -48,11 +48,11 @@ export abstract class JobWorker<TJobNames extends Record<string, string>> {
     });
 
     this.worker.on('failed', (job, error) => {
-      console.error(`[${timestamp()}] [${this.label}] ${job?.name} (${job?.id}) fehlgeschlagen:`, error.message);
+      console.error(`[${timestamp()}] [${this.label}] ${job?.name} (${job?.id}) failed:`, error.message);
     });
 
     this.worker.on('error', (error) => {
-      console.error(`[${timestamp()}] [${this.label}] Fehler:`, error.message);
+      console.error(`[${timestamp()}] [${this.label}] Error:`, error.message);
     });
   }
 }

@@ -1,4 +1,4 @@
-# Ein gemeinsames Image für beide Prozesse: Web (`next start`) und Worker (`node dist/worker/runner.mjs`).
+# A shared image for both processes: web (`next start`) and worker (`node dist/worker/runner.mjs`).
 FROM node:24-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -29,13 +29,13 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
-# Chromium (für den PDF-Export via Puppeteer) + Fonts für sauberes PDF-Rendering.
+# Chromium (for PDF export via Puppeteer) + fonts for clean PDF rendering.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       chromium \
       fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
 
-# `drizzle-kit` bleibt in den Dependencies, weil das Deploy-Workflow `pnpm db:migrate` im Image ausführt.
+# `drizzle-kit` stays in the dependencies because the deploy workflow runs `pnpm db:migrate` inside the image.
 COPY --from=deps-prod --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/.next ./.next
 COPY --from=builder --chown=node:node /app/public ./public
@@ -45,7 +45,7 @@ COPY --from=builder --chown=node:node /app/drizzle.config.ts ./drizzle.config.ts
 COPY --from=builder --chown=node:node /app/next.config.mjs ./next.config.mjs
 COPY --from=builder --chown=node:node /app/package.json ./package.json
 
-# Laufzeit-Ablageort für Uploads/generierte PDFs
+# Runtime storage location for uploads/generated PDFs
 RUN mkdir -p storage/applications storage/chat-uploads storage/uploads && chown -R node:node storage
 
 USER node

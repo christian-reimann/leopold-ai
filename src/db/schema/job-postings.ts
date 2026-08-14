@@ -6,16 +6,16 @@ export const jobPostings = pgTable(
   'job_postings',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    // Dedup-Ebene 1: dieselbe Quelle liefert dieselbe Stelle erneut (Re-Poll) → Update statt Duplikat.
+    // Dedup level 1: the same source delivers the same posting again (re-poll) → update instead of duplicate.
     sourceConnector: text('source_connector').notNull(),
     sourceId: text('source_id').notNull(),
-    // Grober Content-Hash als billiger Kandidaten-Vorfilter für Dedup-Ebene 2 (kein Unique-Constraint
-    // mehr – exakte Content-Kollisionen über verschiedene Quellen sind gewollte, verlinkte Duplikate,
-    // kein Insert-Konflikt).
+    // Coarse content hash as a cheap candidate pre-filter for dedup level 2 (no longer a unique
+    // constraint – exact content collisions across different sources are intentional, linked
+    // duplicates, not an insert conflict).
     dedupeHash: text('dedupe_hash').notNull(),
-    // Dedup-Ebene 2: quellenübergreifendes Near-Duplicate via Embedding-Ähnlichkeit. Zeile bleibt
-    // erhalten (eigene rawHtml/data pro Quelle), verweist aber auf die zuerst gesehene Stelle.
-    // Matching/UI filtern auf `duplicateOfId IS NULL`.
+    // Dedup level 2: cross-source near-duplicate via embedding similarity. The row is kept
+    // (own rawHtml/data per source), but references the first-seen posting.
+    // Matching/UI filter on `duplicateOfId IS NULL`.
     duplicateOfId: uuid('duplicate_of_id').references((): AnyPgColumn => jobPostings.id),
     rawHtml: text('raw_html'),
     data: jsonb('data').$type<JobPosting>().notNull(),
