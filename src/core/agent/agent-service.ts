@@ -20,10 +20,12 @@ export class AgentService {
     conversationId,
     userMessage,
     applicationId,
+    abortSignal,
   }: {
     conversationId: string;
     userMessage: UIMessage;
     applicationId?: string;
+    abortSignal?: AbortSignal;
   }): Promise<Response> {
     await conversationService.appendMessages(conversationId, [userMessage]);
     const [history, profileId] = await Promise.all([
@@ -43,6 +45,7 @@ export class AgentService {
       tools,
       toolApproval,
       stopWhen: stepCountIs(MAX_STEPS),
+      abortSignal,
     });
 
     const uiStream = toUIMessageStream({
@@ -51,10 +54,11 @@ export class AgentService {
       originalMessages: history,
       // Without this, a new assistant reply gets no id (empty string), because
       // `originalMessages` ends with a user message, not an assistant message
-      // (see UIMessageStreamOptions.generateMessageId) – that then collides as a duplicate key
-      // with the next assistant message, which also gets id=''.
       generateMessageId: generateId,
-      onEnd: async ({ responseMessage }) => {
+      // `isAborted` (reported by the AI SDK via a dedicated "abort" stream chunk) races against
+      // the response stream's own `cancel()` on client disconnect and isn't reliable here
+      onEnd: async ({ responseMessage, isAborted }) => {
+        if (isAborted || abortSignal?.aborted) return;
         await conversationService.appendMessages(conversationId, [responseMessage]);
       },
     });

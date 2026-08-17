@@ -4,7 +4,6 @@ import { JobPostingSchema } from '@/shared/schemas/job-posting';
 import type { SearchCriteria } from '@/shared/schemas/search-query';
 import { BaseConnector } from '../base-connector';
 import type { ConnectorResult } from '../connector';
-import { expandKeyword } from '../keyword-synonyms';
 
 const JobListingSchema = z.object({
   slug: z.string(),
@@ -28,21 +27,25 @@ const JobBoardResponseSchema = z.object({
     })
     .optional(),
 });
+type JobBoardResponse = z.infer<typeof JobBoardResponseSchema>;
 
 const GERMAN_CITY_ALIASES: Partial<Record<string, string[]>> = {
   munchen: ['munich'],
   koln: ['cologne'],
   nurnberg: ['nuremberg'],
   hannover: ['hanover'],
+  braunschweig: ['brunswick'],
 };
 
 export class ArbeitnowConnector extends BaseConnector<JobListing> {
   private static readonly BASE_URL = 'https://www.arbeitnow.com/api/job-board-api';
-  private static readonly MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-  private static readonly REQUEST_DELAY_MS = 500;
+  private static readonly MAX_AGE_MS = 28 * 24 * 60 * 60 * 1000;
+  private static readonly REQUEST_DELAY_MS = 1000;
+  private static readonly MAX_RETRY_ATTEMPTS = 5;
+  private static readonly RETRY_BASE_DELAY_MS = 2000;
 
   readonly id = 'arbeitnow';
-  readonly userAgent = 'LeopoldAI-Jobpilot/1.3';
+  readonly userAgent = 'Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0';
 
   protected async fetchRaw(criteria: SearchCriteria): Promise<JobListing[]> {
     const listings = await this.fetchRecentListings();
@@ -77,30 +80,17 @@ export class ArbeitnowConnector extends BaseConnector<JobListing> {
     const cutoff = Date.now() - ArbeitnowConnector.MAX_AGE_MS;
     const listings: JobListing[] = [];
     let page = 1;
-    let firstPageSize: number | undefined;
 
     while (true) {
       if (page > 1) {
         await ArbeitnowConnector.delay(ArbeitnowConnector.REQUEST_DELAY_MS);
       }
 
-      const url = `${ArbeitnowConnector.BASE_URL}?page=${page}`;
-      console.log(`[${new Date().toISOString()}] [${this.id}] Search request: ${url}`);
-
-      const response = await fetch(url, { headers: { 'User-Agent': this.userAgent } });
-      if (!response.ok) {
-        throw new Error(`arbeitnow search failed (${response.status}): ${await response.text()}`);
-      }
-
-      const parsed = JobBoardResponseSchema.safeParse(await response.json());
-      if (!parsed.success) {
-        throw new Error(`arbeitnow search: unexpected response format: ${parsed.error.message}`);
-      }
-      const pageItems = parsed.data.data;
+      const pageData = await this.fetchPage(page);
+      const pageItems = pageData.data;
       if (pageItems.length === 0) {
         break;
       }
-      firstPageSize ??= pageItems.length;
 
       let reachedCutoff = false;
       for (const listing of pageItems) {
@@ -111,14 +101,43 @@ export class ArbeitnowConnector extends BaseConnector<JobListing> {
         listings.push(listing);
       }
 
-      const isLastPage = pageItems.length < firstPageSize || !parsed.data.links?.next;
-      if (reachedCutoff || isLastPage) {
+      if (reachedCutoff || !pageData.links?.next) {
         break;
       }
       page += 1;
     }
 
     return listings;
+  }
+
+  // Retries on HTTP 429 with exponential backoff
+  private async fetchPage(page: number): Promise<JobBoardResponse> {
+    const url = `${ArbeitnowConnector.BASE_URL}?page=${page}`;
+
+    for (let attempt = 0; ; attempt++) {
+      console.log(`[${new Date().toISOString()}] [${this.id}] Search request: ${url} (attempt ${attempt + 1})`);
+      const response = await fetch(url, { headers: { 'User-Agent': this.userAgent } });
+
+      if (response.status === 429) {
+        if (attempt >= ArbeitnowConnector.MAX_RETRY_ATTEMPTS) {
+          throw new Error(`arbeitnow search failed (429): rate limited after ${attempt + 1} attempts`);
+        }
+        const backoffMs = ArbeitnowConnector.RETRY_BASE_DELAY_MS * 2 ** attempt;
+        console.warn(`[${this.id}] Rate limited on page ${page}, retrying in ${backoffMs}ms`);
+        await ArbeitnowConnector.delay(backoffMs);
+        continue;
+      }
+
+      if (!response.ok) {
+        throw new Error(`arbeitnow search failed (${response.status}): ${await response.text()}`);
+      }
+
+      const parsed = JobBoardResponseSchema.safeParse(await response.json());
+      if (!parsed.success) {
+        throw new Error(`arbeitnow search: unexpected response format: ${parsed.error.message}`);
+      }
+      return parsed.data;
+    }
   }
 
   private static delay(ms: number): Promise<void> {
@@ -138,15 +157,8 @@ export class ArbeitnowConnector extends BaseConnector<JobListing> {
     if (criteria.keywords.length === 0) {
       return true;
     }
-    const haystack = ArbeitnowConnector.normalize(
-      `${listing.title ?? ''} ${ArbeitnowConnector.stripHtml(listing.description ?? '')}`,
-    );
-    // Every keyword must match, but for each keyword a single synonym is already enough (e.g. "Softwareentwickler"
-    // also matches "Software Engineer") – arbeitnow listings are often written in English.
-    return criteria.keywords.every((keyword) => {
-      const synonyms = expandKeyword(ArbeitnowConnector.normalize(keyword));
-      return synonyms.some((term) => haystack.includes(term));
-    });
+    const haystack = ArbeitnowConnector.normalize(listing.title ?? '');
+    return criteria.keywords.some((keyword) => haystack.includes(ArbeitnowConnector.normalize(keyword)));
   }
 
   private static matchesLocation(listing: JobListing, criteria: SearchCriteria): boolean {
@@ -182,7 +194,7 @@ export class ArbeitnowConnector extends BaseConnector<JobListing> {
     return mapped !== undefined && criteria.employmentTypes.includes(mapped);
   }
 
-  private static mapEmploymentType(jobTypes: string[]): EmploymentType | undefined {
+  private static mapEmploymentType(jobTypes: string[]): EmploymentType {
     const normalized = jobTypes.map((type) => ArbeitnowConnector.normalize(type));
 
     if (normalized.some((type) => type.includes('intern'))) return 'internship';
@@ -195,8 +207,8 @@ export class ArbeitnowConnector extends BaseConnector<JobListing> {
     }
     if (normalized.some((type) => type.includes('freelance') || type.includes('contract'))) return 'freelance';
     if (normalized.some((type) => type.includes('part'))) return 'part_time';
-    if (normalized.some((type) => type.includes('full') || type.includes('permanent'))) return 'full_time';
-    return undefined;
+    //if (normalized.some((type) => type.includes('full') || type.includes('permanent'))) return 'full_time';
+    return 'full_time';
   }
 
   private static normalize(text: string): string {

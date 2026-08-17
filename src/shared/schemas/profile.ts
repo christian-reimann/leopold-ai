@@ -32,7 +32,7 @@ export type Personal = z.infer<typeof PersonalSchema>;
 export const ProjectSchema = z.object({
   title: z.string(),
   client: z.string().optional(),
-  startDate: z.string(), // "MM.YYYY" oder "YYYY"
+  startDate: z.string(), // "MM.YYYY" or "YYYY"
   endDate: z.string().optional(),
   description: z.string(),
 });
@@ -46,7 +46,7 @@ export const ExperienceSchema = z.object({
   role: z.string(),
   company: z.string().optional(),
   employmentType: EmploymentTypeSchema,
-  startDate: z.string(), // "MM.YYYY" oder "YYYY"
+  startDate: z.string(), // "MM.YYYY" or "YYYY"
   endDate: z.string().optional(),
   description: z.string(),
 });
@@ -55,7 +55,7 @@ export type Experience = z.infer<typeof ExperienceSchema>;
 export const EducationSchema = z.object({
   degree: z.string(),
   institution: z.string(),
-  startDate: z.string(), // "MM.YYYY" oder "YYYY"
+  startDate: z.string(), // "MM.YYYY" or "YYYY"
   endDate: z.string().optional(),
   description: z.string(),
 });

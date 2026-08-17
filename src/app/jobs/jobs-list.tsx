@@ -2,9 +2,11 @@
 
 import { ChevronDown, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import { NewApplicationDialog } from '@/app/applications/new-application-dialog';
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { MatchSortBy } from '@/core/matching/matching-service';
 import { formatPostedAt } from '@/lib/format-posted-at';
@@ -13,7 +15,7 @@ import { connectorMetaFor } from '@/shared/connector-meta';
 import type { JobPosting } from '@/shared/schemas/job-posting';
 import type { MatchReasoning } from '@/shared/schemas/match';
 import { loadMoreJobsAction } from './actions';
-import { JOBS_PAGE_SIZE } from './constants';
+import { JOBS_PAGE_SIZE, MAX_AGE_DAYS_LIMIT } from './constants';
 
 export type JobRow = {
   id: string;
@@ -30,23 +32,42 @@ const SORT_OPTIONS: { value: MatchSortBy; label: string }[] = [
   { value: 'postedAt', label: 'Nach Aktualität' },
 ];
 
+function formatMaxAgeLabel(maxAgeDays: number): string {
+  if (maxAgeDays >= MAX_AGE_DAYS_LIMIT) return 'Alle';
+  if (maxAgeDays === 0) return 'Heute';
+  if (maxAgeDays === 1) return '1 Tag';
+  return `${maxAgeDays} Tage`;
+}
+
 export function JobsList({
   initialRows,
   sortBy,
+  maxAgeDays,
   totalCount,
 }: {
   initialRows: JobRow[];
   sortBy: MatchSortBy;
+  maxAgeDays?: number;
   totalCount: number;
 }) {
+  const router = useRouter();
   const [applicationTarget, setApplicationTarget] = useState<{ jobId: string; jobTitle: string } | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [rows, setRows] = useState(initialRows);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(initialRows.length === JOBS_PAGE_SIZE);
+  const [sliderValue, setSliderValue] = useState(maxAgeDays ?? MAX_AGE_DAYS_LIMIT);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const isLoadingMoreRef = useRef(false);
   const offsetRef = useRef(initialRows.length);
+
+  function commitMaxAge(value: number) {
+    const params = new URLSearchParams();
+    if (sortBy === 'score') params.set('sort', sortBy);
+    if (value < MAX_AGE_DAYS_LIMIT) params.set('maxAge', String(value));
+    const query = params.toString();
+    router.push(query ? `/jobs?${query}` : '/jobs');
+  }
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -68,7 +89,7 @@ export function JobsList({
     isLoadingMoreRef.current = true;
     setIsLoadingMore(true);
     try {
-      const nextRows = await loadMoreJobsAction(offsetRef.current, sortBy);
+      const nextRows = await loadMoreJobsAction(offsetRef.current, sortBy, maxAgeDays);
       offsetRef.current += nextRows.length;
       setRows((prev) => [...prev, ...nextRows]);
       setHasMore(nextRows.length === JOBS_PAGE_SIZE);
@@ -100,19 +121,43 @@ export function JobsList({
           </p>
         </div>
         <div className="flex items-center gap-1 rounded-md border border-border p-0.5 text-sm">
-          {SORT_OPTIONS.map((option) => (
-            <Link
-              key={option.value}
-              href={option.value === 'postedAt' ? '/jobs' : `/jobs?sort=${option.value}`}
-              className={cn(
-                'rounded px-2.5 py-1 transition-colors',
-                sortBy === option.value ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted',
-              )}
-            >
-              {option.label}
-            </Link>
-          ))}
+          {SORT_OPTIONS.map((option) => {
+            const params = new URLSearchParams();
+            if (option.value === 'score') params.set('sort', option.value);
+            if (sliderValue < MAX_AGE_DAYS_LIMIT) params.set('maxAge', String(sliderValue));
+            const query = params.toString();
+            return (
+              <Link
+                key={option.value}
+                href={query ? `/jobs?${query}` : '/jobs'}
+                className={cn(
+                  'rounded px-2.5 py-1 transition-colors',
+                  sortBy === option.value
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-muted',
+                )}
+              >
+                {option.label}
+              </Link>
+            );
+          })}
         </div>
+      </div>
+
+      <div className="max-w-xs">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">Max. Alter</span>
+          <span className="text-sm text-muted-foreground">{formatMaxAgeLabel(sliderValue)}</span>
+        </div>
+        <Slider
+          min={0}
+          max={MAX_AGE_DAYS_LIMIT}
+          step={1}
+          value={[sliderValue]}
+          onValueChange={([value]) => setSliderValue(value ?? MAX_AGE_DAYS_LIMIT)}
+          onValueCommit={([value]) => commitMaxAge(value ?? MAX_AGE_DAYS_LIMIT)}
+          className="pt-2"
+        />
       </div>
 
       {rows.length === 0 && (

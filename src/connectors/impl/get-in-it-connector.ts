@@ -3,12 +3,11 @@ import type { EmploymentType } from '@/shared/schemas/job-posting';
 import { JobPostingSchema } from '@/shared/schemas/job-posting';
 import type { SearchCriteria } from '@/shared/schemas/search-query';
 import { BaseConnector } from '../base-connector';
-import type { ConnectorResult } from '../connector';
+import type { ConnectorResult, SourceIdLookup } from '../connector';
 
 /**
  * Unofficial connector for get-in-it.de. The site offers no keyword search – jobs are
- * filtered exclusively via fixed career fields (thematicPriority) plus further ID-based
- * facets. Free-text `keywords` are therefore mapped to career fields via an alias dictionary.
+ * filtered exclusively via fixed career fields (thematicPriority).
  */
 const CareerRefSchema = z.object({
   id: z.number(),
@@ -69,8 +68,7 @@ interface GetInItRawItem {
   detail: JobDetail;
 }
 
-// Fixed career field IDs from get-in-it.de (see __NEXT_DATA__.props.initialState.thematicPriorities)
-// with alias terms that free-text search keywords are matched against.
+// Fixed career field IDs from get-in-it.de
 const THEMATIC_PRIORITIES: ReadonlyArray<{ id: number; aliases: readonly string[] }> = [
   {
     id: 36,
@@ -215,18 +213,18 @@ export class GetInItConnector extends BaseConnector<GetInItRawItem> {
   private static readonly BASE_URL = 'https://www.get-in-it.de';
   private static readonly SEARCH_PAGE_SIZE = 100;
   private static readonly MAX_SEARCH_RESULTS = 1000;
+  private static readonly DETAIL_REQUEST_DELAY_MS = 500;
 
   readonly id = 'get-in-it';
-  readonly userAgent = 'LeopoldAI-Jobpilot/1.3';
+  readonly userAgent = 'Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0';
 
-  protected async fetchRaw(criteria: SearchCriteria): Promise<GetInItRawItem[]> {
+  protected async fetchRaw(criteria: SearchCriteria, sourceIdLookup?: SourceIdLookup): Promise<GetInItRawItem[]> {
     const thematicPriorityIds = GetInItConnector.matchThematicPriorities(criteria.keywords);
     const listings = await this.searchListings(thematicPriorityIds);
 
     // When a career field matches, the field is trusted instead of additionally filtering by
     // title substrings – the site is deliberately designed around "career field instead of job
-    // title". Without a match, all fields are searched and filtered locally by title, to keep
-    // the result list manageable.
+    // title". Without a match, all fields are searched and filtered locally by title.
     const keywordFiltered =
       thematicPriorityIds.length > 0
         ? listings
@@ -236,8 +234,18 @@ export class GetInItConnector extends BaseConnector<GetInItRawItem> {
       .filter((listing) => GetInItConnector.matchesLocation(listing, criteria))
       .filter((listing) => GetInItConnector.matchesRemote(listing, criteria));
 
+    // Skip the per-listing detail request for postings already known from a previous run
+    const known = await sourceIdLookup?.(locationFiltered.map((listing) => String(listing.id)));
     const items: GetInItRawItem[] = [];
+    let isFirstDetailRequest = true;
     for (const listing of locationFiltered) {
+      if (known?.has(String(listing.id))) {
+        continue;
+      }
+      if (!isFirstDetailRequest) {
+        await GetInItConnector.delay(GetInItConnector.DETAIL_REQUEST_DELAY_MS);
+      }
+      isFirstDetailRequest = false;
       const detail = await this.fetchJobDetail(listing.id);
       if (!detail) {
         continue;
@@ -275,13 +283,6 @@ export class GetInItConnector extends BaseConnector<GetInItRawItem> {
     };
   }
 
-  /**
-   * The server-rendered /jobsuche page only returns the first page (~39 hits) – for
-   * complete results, the REST API is used instead, the same one the frontend's
-   * "load more jobs" button uses. Capped from above (MAX_SEARCH_RESULTS), so that a
-   * search without a recognized career field (which then yields thousands of hits
-   * nationwide) doesn't load an unbounded number of pages.
-   */
   private async searchListings(thematicPriorityIds: number[]): Promise<JobListing[]> {
     const listings: JobListing[] = [];
     let start = 0;
@@ -319,8 +320,7 @@ export class GetInItConnector extends BaseConnector<GetInItRawItem> {
 
     const response = await fetch(url, { headers: { 'User-Agent': this.userAgent } });
     if (!response.ok) {
-      // A single detail request can fail (e.g. posting removed in the meantime) – that
-      // shouldn't abort the whole search, see fetchRaw.
+      // A single detail request can fail (e.g. posting removed in the meantime)
       return undefined;
     }
 
@@ -394,7 +394,7 @@ export class GetInItConnector extends BaseConnector<GetInItRawItem> {
       return true;
     }
     const haystack = GetInItConnector.normalize(listing.title ?? '');
-    return criteria.keywords.every((keyword) => haystack.includes(GetInItConnector.normalize(keyword)));
+    return criteria.keywords.some((keyword) => haystack.includes(GetInItConnector.normalize(keyword)));
   }
 
   private static matchesLocation(listing: JobListing, criteria: SearchCriteria): boolean {
@@ -423,17 +423,18 @@ export class GetInItConnector extends BaseConnector<GetInItRawItem> {
 
   /**
    * `employmentType` from the JSON-LD is unreliable (e.g. it's usually FULL_TIME even for
-   * "Werkstudent" titles) – title hints therefore take priority, the schema only serves as
-   * a fallback for the vz/tz distinction.
+   * "Werkstudent" titles) – title hints therefore take priority, the schema serves as a
+   * fallback for the vz/tz distinction, and `full_time` is the final fallback (the vast
+   * majority of get-in-it postings without a title hint are regular full-time positions).
    */
-  private static mapEmploymentType(title: string, schemaType: string | undefined): EmploymentType | undefined {
+  private static mapEmploymentType(title: string, schemaType: string | undefined): EmploymentType {
     const normalizedTitle = GetInItConnector.normalize(title);
     for (const [hint, type] of EMPLOYMENT_TYPE_BY_TITLE_HINT) {
       if (normalizedTitle.includes(hint)) {
         return type;
       }
     }
-    return schemaType ? EMPLOYMENT_TYPE_BY_SCHEMA[schemaType] : undefined;
+    return (schemaType ? EMPLOYMENT_TYPE_BY_SCHEMA[schemaType] : undefined) ?? 'full_time';
   }
 
   private static formatLocation(locations: JobListing['locations']): string | undefined {
@@ -451,6 +452,10 @@ export class GetInItConnector extends BaseConnector<GetInItRawItem> {
 
   private static normalize(text: string): string {
     return text.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  }
+
+  private static delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private static extractNextData(html: string): unknown {

@@ -1,0 +1,8 @@
+{
+  "keywords": ["Softwareentwickler"],
+  "location": "Berlin",
+  "radiusKm": 25,
+  "remote": false,
+  "employmentTypes": ["working_student"],
+  "connectors": ["get-in-it"]
+}

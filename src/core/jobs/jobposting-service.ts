@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { and, cosineDistance, desc, eq, isNotNull, isNull, ne, sql } from 'drizzle-orm';
+import { and, cosineDistance, desc, eq, inArray, isNotNull, isNull, ne, sql } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { jobPostings } from '@/db/schema/job-postings';
 import { embeddingClient } from '@/llm/embeddings';
@@ -29,6 +29,19 @@ export class JobPostingService {
       throw new Error(`Job posting not found: ${jobId}`);
     }
     return posting;
+  }
+
+  // Lets connectors skip the (expensive) per-item detail fetch for postings that already
+  // exist for this connector – see JobConnector.search's sourceIdLookup parameter.
+  async findKnownSourceIds(connectorId: string, candidateSourceIds: string[]): Promise<Set<string>> {
+    if (candidateSourceIds.length === 0) {
+      return new Set();
+    }
+    const rows = await db
+      .select({ sourceId: jobPostings.sourceId })
+      .from(jobPostings)
+      .where(and(eq(jobPostings.sourceConnector, connectorId), inArray(jobPostings.sourceId, candidateSourceIds)));
+    return new Set(rows.map((row) => row.sourceId));
   }
 
   async ingestConnectorResults(connectorId: string, results: ConnectorResult[]): Promise<string[]> {

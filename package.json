@@ -17,6 +17,7 @@
     "start": "next start",
     "worker": "node --env-file=.env dist/worker/runner.mjs",
     "worker:dev": "tsx watch --env-file=.env src/worker/runner.ts",
+    "connectors:test": "tsx --env-file=.env scripts/test-connectors.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",

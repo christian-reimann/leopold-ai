@@ -5,7 +5,6 @@ import { conversations } from '@/db/schema/conversations';
 import { messages } from '@/db/schema/messages';
 
 export class ConversationService {
-
   async getOrCreate(profileId: string): Promise<string> {
     const [existing] = await db
       .select({ id: conversations.id })

@@ -3,7 +3,7 @@ import type { EmploymentType } from '@/shared/schemas/job-posting';
 import { JobPostingSchema } from '@/shared/schemas/job-posting';
 import type { SearchCriteria } from '@/shared/schemas/search-query';
 import { BaseConnector } from '../base-connector';
-import type { ConnectorResult } from '../connector';
+import type { ConnectorResult, SourceIdLookup } from '../connector';
 
 /**
  * Unofficial interface of the Bundesagentur für Arbeit – the BA does not offer an
@@ -29,8 +29,11 @@ const SearchHitSchema = z.object({
 type SearchHit = z.infer<typeof SearchHitSchema>;
 
 const SearchResponseSchema = z.object({
-  ergebnisliste: z.array(SearchHitSchema),
+  // Missing entirely (instead of an empty array) when `page` is beyond the last page.
+  ergebnisliste: z.array(SearchHitSchema).optional().default([]),
+  maxErgebnisse: z.number(),
 });
+type SearchResponse = z.infer<typeof SearchResponseSchema>;
 
 const JobDetailsSchema = z.object({
   referenznummer: z.string().optional(),
@@ -62,11 +65,12 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
   private static readonly BASE_URL = 'https://rest.arbeitsagentur.de/jobboerse/jobsuche-service';
   private static readonly API_KEY = 'jobboerse-jobsuche';
   private static readonly PAGE_SIZE = 25;
+  private static readonly PUBLISHED_WITHIN_DAYS = 28;
+  private static readonly DETAIL_REQUEST_DELAY_MS = 500;
 
   private static readonly ARBEITSZEIT_BY_EMPLOYMENT_TYPE: Partial<Record<string, string>> = {
     full_time: 'vz',
     part_time: 'tz',
-    working_student: 'tz',
     minijob: 'mj',
   };
 
@@ -80,15 +84,26 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
   };
 
   readonly id = 'arbeitsagentur';
-  readonly userAgent = 'LeopoldAI-Jobpilot/1.3';
+  readonly userAgent = 'Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0';
 
-  protected async fetchRaw(criteria: SearchCriteria): Promise<ArbeitsagenturRawItem[]> {
+  protected async fetchRaw(
+    criteria: SearchCriteria,
+    sourceIdLookup?: SourceIdLookup,
+  ): Promise<ArbeitsagenturRawItem[]> {
     const hits = await this.searchJobs(criteria);
 
-    // The search response doesn't contain a description – a detail request is needed per hit.
-    // Sequential instead of parallel, to avoid overloading the unofficial API.
+    // Skip the per-hit detail request for postings already known from a previous run
+    const known = await sourceIdLookup?.(hits.map((hit) => hit.referenznummer));
     const items: ArbeitsagenturRawItem[] = [];
+    let isFirstDetailRequest = true;
     for (const hit of hits) {
+      if (known?.has(hit.referenznummer)) {
+        continue;
+      }
+      if (!isFirstDetailRequest) {
+        await ArbeitsagenturConnector.delay(ArbeitsagenturConnector.DETAIL_REQUEST_DELAY_MS);
+      }
+      isFirstDetailRequest = false;
       const details = await this.fetchJobDetails(hit.referenznummer);
       if (details) {
         items.push({ hit, details });
@@ -106,9 +121,27 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
     return { 'X-API-Key': ArbeitsagenturConnector.API_KEY, 'User-Agent': this.userAgent };
   }
 
-  private async searchJobs(criteria: SearchCriteria, page = 1): Promise<SearchHit[]> {
+  // Fetches all pages until `maxErgebnisse` is reached or a page comes back empty
+  // (beyond the last page, the API no longer returns an `ergebnisliste` field).
+  private async searchJobs(criteria: SearchCriteria): Promise<SearchHit[]> {
+    const hits: SearchHit[] = [];
+    let page = 1;
+    let total = Number.POSITIVE_INFINITY;
+    while (hits.length < total) {
+      const response = await this.fetchSearchPage(criteria, page);
+      if (response.ergebnisliste.length === 0) {
+        break;
+      }
+      hits.push(...response.ergebnisliste);
+      total = response.maxErgebnisse;
+      page++;
+    }
+    return hits;
+  }
+
+  private async fetchSearchPage(criteria: SearchCriteria, page: number): Promise<SearchResponse> {
     const params = ArbeitsagenturConnector.buildSearchParams(criteria, page);
-    const url = `${ArbeitsagenturConnector.BASE_URL}/pc/v6/jobs?${params.toString()}`;
+    const url = `${ArbeitsagenturConnector.BASE_URL}/pc/v6/jobs?${ArbeitsagenturConnector.toQueryString(params)}`;
     console.log(`[${new Date().toISOString()}] [${this.id}] Search request: ${url}`);
 
     const response = await fetch(url, {
@@ -122,7 +155,7 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
     if (!parsed.success) {
       throw new Error(`Arbeitsagentur job search: unexpected response format: ${parsed.error.message}`);
     }
-    return parsed.data.ergebnisliste;
+    return parsed.data;
   }
 
   private async fetchJobDetails(refnr: string): Promise<JobDetails | undefined> {
@@ -135,9 +168,22 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
       // that shouldn't abort the whole search, see fetchRaw.
       return undefined;
     }
-
     const parsed = JobDetailsSchema.safeParse(await response.json());
     return parsed.success ? parsed.data : undefined;
+  }
+
+  /**
+   * `URLSearchParams.toString()` encodes spaces as "+" (application/x-www-form-urlencoded),
+   * but the Arbeitsagentur API only returns correct results with "%20"
+   */
+  private static toQueryString(params: URLSearchParams): string {
+    return [...params.entries()]
+      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+      .join('&');
+  }
+
+  private static delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   // Doesn't use any member variables -> static.
@@ -153,7 +199,7 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
       params.set('umkreis', String(criteria.radiusKm));
     }
     if (criteria.remote) {
-      params.set('homeoffice', 'nv_true');
+      params.set('homeoffice', 'prozentual_0;nv_true');
     }
 
     const arbeitszeit = new Set<string>();
@@ -168,18 +214,17 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
     }
 
     // Only one value possible: the first hit from the requested employmentTypes wins.
-    // Without a more specific requirement, the default "1" (ARBEIT) applies – filters out
-    // apprenticeships, internships/working students, and self-employment by default.
     const angebotsart =
       (criteria.employmentTypes ?? [])
         .map((type) => ArbeitsagenturConnector.ANGEBOTSART_BY_EMPLOYMENT_TYPE[type])
         .find((value) => value !== undefined) ?? '1';
 
     params.set('angebotsart', angebotsart);
-    params.set('pav', 'false');
-    params.set('as', 'true');
+    params.set('veroeffentlichtseit', String(ArbeitsagenturConnector.PUBLISHED_WITHIN_DAYS));
     params.set('page', String(page));
     params.set('size', String(ArbeitsagenturConnector.PAGE_SIZE));
+    params.set('pav', 'false');
+    params.set('as', 'true');
     params.set('sort', 'veroeffdatum');
     return params;
   }

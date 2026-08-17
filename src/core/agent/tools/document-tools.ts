@@ -64,8 +64,7 @@ export function documentTools(profileId: string): ToolSet {
     }),
 
     requestProfileExtraction: tool({
-      description:
-        'Stößt die Profil-Extraktion aus den angegebenen Dokumenten an und wartet auf deren Abschluss.',
+      description: 'Stößt die Profil-Extraktion aus den angegebenen Dokumenten an und wartet auf deren Abschluss.',
       inputSchema: z.object({ documentIds: z.array(z.uuid()).min(1) }),
       execute: async ({ documentIds }) => {
         await documentService.requestProfileExtractionAndWait(documentIds, profileId);

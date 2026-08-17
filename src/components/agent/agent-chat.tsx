@@ -1,7 +1,7 @@
 'use client';
 
 import type { ChatStatus, UIMessage, UIMessagePart, UIDataTypes, UITools } from 'ai';
-import { ArrowUp, Loader2, Paperclip, X } from 'lucide-react';
+import { ArrowUp, Loader2, Paperclip, Square, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/button';
@@ -54,11 +54,13 @@ export function AgentChat({
   status,
   onSend,
   onApprove,
+  onStop,
 }: {
   messages: UIMessage[];
   status: ChatStatus;
   onSend: (text: string) => void;
   onApprove: (approvalId: string, approved: boolean) => void;
+  onStop: () => void;
 }) {
   const [draft, setDraft] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -128,7 +130,9 @@ export function AgentChat({
       <ScrollArea className="min-h-0 flex-1 px-3">
         <div className="space-y-3 py-3">
           {messages.length === 0 && (
-            <p className="text-sm text-muted-foreground">Frag Leopold nach deinen Dokumenten, Suchaufträgen oder Jobs.</p>
+            <p className="text-sm text-muted-foreground">
+              Frag Leopold nach deinen Dokumenten, Suchaufträgen oder Jobs.
+            </p>
           )}
           {messages.filter(hasVisibleContent).map((message) => (
             <div
@@ -218,15 +222,27 @@ export function AgentChat({
             >
               <Paperclip className="size-4" />
             </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={!canSend}
-              size="icon-sm"
-              className="shrink-0 rounded-full"
-              aria-label="Senden"
-            >
-              <ArrowUp className="size-4" />
-            </Button>
+            {isBusy ? (
+              <Button
+                type="button"
+                onClick={onStop}
+                size="icon-sm"
+                className="shrink-0 rounded-full"
+                aria-label="Anfrage abbrechen"
+              >
+                <Square className="size-3.5" fill="currentColor" />
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSubmit}
+                disabled={!canSend}
+                size="icon-sm"
+                className="shrink-0 rounded-full"
+                aria-label="Senden"
+              >
+                <ArrowUp className="size-4" />
+              </Button>
+            )}
           </div>
         </div>
       </div>

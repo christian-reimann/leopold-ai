@@ -1,4 +1,4 @@
-import { count, desc, eq, sql } from 'drizzle-orm';
+import { and, count, desc, eq, sql } from 'drizzle-orm';
 import { jobPostingService } from '@/core/jobs/jobposting-service';
 import { profileService } from '@/core/profile/profile-service';
 import { db } from '@/db/client';
@@ -36,7 +36,7 @@ export class MatchingService {
       });
   }
 
-  async listRecent(profileId: string, limit = 50, sortBy: MatchSortBy = 'postedAt', offset = 0) {
+  async listRecent(profileId: string, limit = 50, sortBy: MatchSortBy = 'postedAt', offset = 0, maxAgeDays?: number) {
     const primarySort =
       sortBy === 'postedAt' ? desc(sql`${jobPostings.data}->>'postedAt'`) : desc(matches.scoreMeToJob);
 
@@ -52,15 +52,25 @@ export class MatchingService {
       })
       .from(matches)
       .innerJoin(jobPostings, eq(matches.jobId, jobPostings.id))
-      .where(eq(matches.profileId, profileId))
+      .where(and(eq(matches.profileId, profileId), this.maxAgeCondition(maxAgeDays)))
       .orderBy(primarySort, desc(matches.id))
       .limit(limit)
       .offset(offset);
   }
 
-  async countByProfile(profileId: string): Promise<number> {
-    const [row] = await db.select({ count: count() }).from(matches).where(eq(matches.profileId, profileId));
+  async countByProfile(profileId: string, maxAgeDays?: number): Promise<number> {
+    const [row] = await db
+      .select({ count: count() })
+      .from(matches)
+      .innerJoin(jobPostings, eq(matches.jobId, jobPostings.id))
+      .where(and(eq(matches.profileId, profileId), this.maxAgeCondition(maxAgeDays)));
     return row?.count ?? 0;
+  }
+
+  private maxAgeCondition(maxAgeDays?: number) {
+    if (maxAgeDays === undefined) return undefined;
+    return sql`(${jobPostings.data}->>'postedAt') IS NOT NULL
+      AND (${jobPostings.data}->>'postedAt')::timestamptz >= now() - (interval '1 day' * ${maxAgeDays})`;
   }
 
   private cosineSimilarity(a: number[], b: number[]): number {

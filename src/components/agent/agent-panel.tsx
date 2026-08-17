@@ -97,7 +97,7 @@ function AgentPanelReady({ initialMessages, onCollapse }: { initialMessages: UIM
   const applicationId = resolveApplicationId(pathname);
   const router = useRouter();
 
-  const { messages, sendMessage, addToolApprovalResponse, setMessages, status } = useChat({
+  const { messages, sendMessage, addToolApprovalResponse, setMessages, status, stop } = useChat({
     messages: initialMessages,
     transport,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
@@ -150,6 +150,7 @@ function AgentPanelReady({ initialMessages, onCollapse }: { initialMessages: UIM
         status={status}
         onSend={(text) => sendMessage({ text }, { body: { applicationId } })}
         onApprove={(id, approved) => addToolApprovalResponse({ id, approved })}
+        onStop={stop}
       />
     </>
   );

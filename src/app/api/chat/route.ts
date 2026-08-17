@@ -19,5 +19,5 @@ export async function POST(request: Request): Promise<Response> {
   const profileId = await getActiveProfileId();
   const conversationId = await conversationService.getOrCreate(profileId);
 
-  return agentService.streamChat({ conversationId, userMessage, applicationId });
+  return agentService.streamChat({ conversationId, userMessage, applicationId, abortSignal: request.signal });
 }

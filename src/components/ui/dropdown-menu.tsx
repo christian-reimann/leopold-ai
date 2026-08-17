@@ -38,10 +38,7 @@ function DropdownMenuContent({
   );
 }
 
-function DropdownMenuItem({
-  className,
-  ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Item>) {
+function DropdownMenuItem({ className, ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.Item>) {
   return (
     <DropdownMenuPrimitive.Item
       data-slot="dropdown-menu-item"
@@ -54,10 +51,7 @@ function DropdownMenuItem({
   );
 }
 
-function DropdownMenuLabel({
-  className,
-  ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Label>) {
+function DropdownMenuLabel({ className, ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.Label>) {
   return (
     <DropdownMenuPrimitive.Label
       data-slot="dropdown-menu-label"
@@ -67,10 +61,7 @@ function DropdownMenuLabel({
   );
 }
 
-function DropdownMenuSeparator({
-  className,
-  ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Separator>) {
+function DropdownMenuSeparator({ className, ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.Separator>) {
   return (
     <DropdownMenuPrimitive.Separator
       data-slot="dropdown-menu-separator"

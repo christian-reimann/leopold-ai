@@ -144,9 +144,7 @@ export function ApplicationDetailBody({
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete}>
-                  Löschen
-                </AlertDialogAction>
+                <AlertDialogAction onClick={handleDelete}>Löschen</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

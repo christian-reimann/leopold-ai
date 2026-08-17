@@ -1,7 +1,6 @@
 name: leopold
 
 services:
-
   postgres:
     image: pgvector/pgvector:pg17
     restart: unless-stopped
@@ -104,4 +103,3 @@ volumes:
   caddy-data:
   caddy-config:
   app-storage:
-

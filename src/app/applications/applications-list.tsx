@@ -68,12 +68,7 @@ export function ApplicationsList({ rows }: { rows: ApplicationRow[] }) {
                     </Link>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <a
-                          href={row.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="shrink-0 cursor-default"
-                        >
+                        <a href={row.url} target="_blank" rel="noreferrer" className="shrink-0 cursor-default">
                           {connector.logo}
                         </a>
                       </TooltipTrigger>
@@ -122,9 +117,7 @@ export function ApplicationsList({ rows }: { rows: ApplicationRow[] }) {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleDelete(row.id)}>
-                        Löschen
-                      </AlertDialogAction>
+                      <AlertDialogAction onClick={() => handleDelete(row.id)}>Löschen</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>

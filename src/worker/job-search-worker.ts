@@ -23,7 +23,9 @@ export class JobSearchWorker extends JobWorker<typeof JOB_SEARCH_JOB_NAMES> {
       : connectorRegistry.getAll();
 
     for (const connector of connectors) {
-      const results = await connector.search(criteria);
+      const results = await connector.search(criteria, (ids) =>
+        jobPostingService.findKnownSourceIds(connector.id, ids),
+      );
       const newCanonicalIds = await jobPostingService.ingestConnectorResults(connector.id, results);
       for (const jobId of newCanonicalIds) {
         await matchingService.matchJob(jobId, profileId);
