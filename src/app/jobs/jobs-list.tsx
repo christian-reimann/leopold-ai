@@ -77,6 +77,12 @@ export function JobsList({
   }
 
   useEffect(() => {
+    setRows(initialRows);
+    offsetRef.current = initialRows.length;
+    setHasMore(initialRows.length === JOBS_PAGE_SIZE);
+  }, [initialRows]);
+
+  useEffect(() => {
     if (titleInput === (titleQuery ?? '')) return;
     const handle = setTimeout(() => {
       const params = new URLSearchParams();

@@ -22,7 +22,7 @@ export default async function JobsPage({
 
   return (
     <JobsList
-      key={`${profileId}-${sortBy}-${maxAgeDays ?? 'all'}-${titleQuery ?? ''}`}
+      key={`${profileId}-${sortBy}-${maxAgeDays ?? 'all'}`}
       sortBy={sortBy}
       maxAgeDays={maxAgeDays}
       titleQuery={titleQuery}

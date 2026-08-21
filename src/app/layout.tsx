@@ -21,6 +21,9 @@ export const metadata: Metadata = {
   description: 'KI-Agent zur Unterstützung bei Jobsuche und Bewerbung',
 };
 
+// never prerender at build time
+export const dynamic = 'force-dynamic';
+
 export default async function RootLayout({ children }: { children: ReactNode }) {
   await profileService.ensureAtLeastOneProfile();
   const [profiles, activeProfileId, cookieStore] = await Promise.all([
