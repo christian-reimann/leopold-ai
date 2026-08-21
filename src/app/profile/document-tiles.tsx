@@ -14,6 +14,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { DOCUMENT_TYPES, type DocumentStatus, type DocumentType } from '@/shared/schemas/document';
 import type { ProfileStatus } from '@/shared/schemas/profile';
@@ -76,13 +77,15 @@ export function DocumentTiles({
     (doc) => doc.status === 'done' && (doc.embeddingStatus === 'pending' || doc.embeddingStatus === 'processing'),
   );
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isExtracting, startExtractTransition] = useTransition();
+  const [pendingDocId, setPendingDocId] = useState<string | null>(null);
+  const [, startDocTransition] = useTransition();
   // Bridges the gap between the click and the first poll that actually sees the
   // worker status (profileStatus === 'processing') in the DB.
   const [awaitingExtraction, setAwaitingExtraction] = useState(false);
 
   const doneDocs = useMemo(() => docs.filter((doc) => doc.status === 'done'), [docs]);
-  const isGenerating = isPending || profileStatus === 'processing' || awaitingExtraction;
+  const isGenerating = isExtracting || profileStatus === 'processing' || awaitingExtraction;
 
   useEffect(() => {
     if (awaitingExtraction && (profileStatus === 'done' || profileStatus === 'failed')) {
@@ -92,7 +95,7 @@ export function DocumentTiles({
 
   function handleExtract() {
     setError(null);
-    startTransition(async () => {
+    startExtractTransition(async () => {
       try {
         await extractProfileAction(doneDocs.map((doc) => doc.id));
         setAwaitingExtraction(true);
@@ -104,11 +107,14 @@ export function DocumentTiles({
 
   function handleRemove(id: string) {
     setError(null);
-    startTransition(async () => {
+    setPendingDocId(id);
+    startDocTransition(async () => {
       try {
         await removeDocumentAction(id);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Entfernen fehlgeschlagen');
+      } finally {
+        setPendingDocId(null);
       }
     });
   }
@@ -117,11 +123,14 @@ export function DocumentTiles({
     setError(null);
     const currentIndex = DOCUMENT_TYPES.indexOf(doc.type);
     const nextType = DOCUMENT_TYPES[(currentIndex + 1) % DOCUMENT_TYPES.length] ?? DOCUMENT_TYPES[0];
-    startTransition(async () => {
+    setPendingDocId(doc.id);
+    startDocTransition(async () => {
       try {
         await updateDocumentTypeAction(doc.id, nextType);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Ändern des Dokumenttyps fehlgeschlagen');
+      } finally {
+        setPendingDocId(null);
       }
     });
   }
@@ -160,60 +169,68 @@ export function DocumentTiles({
 
       {docs.length === 0 && <p className="text-sm text-muted-foreground">Noch keine Dokumente hochgeladen.</p>}
       {docs.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <ul className="divide-y divide-border">
           {docs.map((doc) => {
             const { Icon, className } = fileIconFor(doc.name);
             const state = tileState(doc);
+            const errorMessage = doc.error ?? doc.embeddingError;
 
             return (
-              <div key={doc.id} className="group relative flex flex-col items-center gap-2 p-4">
-                <Button
-                  type="button"
-                  size="icon-xs"
-                  variant="ghost"
-                  disabled={isPending}
-                  onClick={() => handleRemove(doc.id)}
-                  aria-label={`${doc.name} entfernen`}
-                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100"
-                >
-                  <X className="size-3.5" />
-                </Button>
-
-                <div className="relative flex h-12 w-12 items-center justify-center">
-                  <Icon className={cn('size-10', className)} />
-                  {state === 'running' && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-background/80">
-                      <Loader2 className="size-6 animate-spin text-muted-foreground" />
-                    </div>
-                  )}
-                  {state === 'success' && (
-                    <CheckCircle2 className="absolute -right-1 -bottom-1 size-5 rounded-full bg-background text-green-600" />
-                  )}
-                  {state === 'failed' && (
-                    <XCircle className="absolute -right-1 -bottom-1 size-5 rounded-full bg-background text-red-600" />
-                  )}
-                </div>
-
-                <p className="w-full truncate text-center text-xs font-medium" title={doc.name}>
+              <li key={doc.id} className="group flex flex-wrap items-center gap-x-3 gap-y-1 px-1 py-2">
+                <Icon className={cn('size-4 shrink-0', className)} />
+                <p className="min-w-0 flex-1 truncate text-sm font-medium" title={doc.name}>
                   {doc.name}
                 </p>
                 <button
                   type="button"
-                  disabled={isPending}
+                  disabled={pendingDocId === doc.id}
                   onClick={() => handleCycleType(doc)}
-                  className="rounded px-1 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
+                  className="shrink-0 rounded-4xl border border-border px-2 py-0.5 text-xs whitespace-nowrap text-muted-foreground hover:bg-muted hover:text-foreground"
                   title="Klicken, um den Dokumenttyp zu wechseln"
                 >
                   {TYPE_LABELS[doc.type]}
                 </button>
-                {(doc.error ?? doc.embeddingError) && (
-                  <p className="line-clamp-2 text-center text-[11px] text-red-600">{doc.error ?? doc.embeddingError}</p>
+                <div className="shrink-0">
+                  <StatusCell state={state} />
+                </div>
+                <Button
+                  type="button"
+                  size="icon-xs"
+                  variant="ghost"
+                  disabled={pendingDocId === doc.id}
+                  onClick={() => handleRemove(doc.id)}
+                  aria-label={`${doc.name} entfernen`}
+                  className="shrink-0 opacity-0 group-hover:opacity-100"
+                >
+                  <X className="size-3.5" />
+                </Button>
+                {errorMessage && (
+                  <p className="basis-full pl-7 text-xs text-red-600">{errorMessage}</p>
                 )}
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
     </div>
+  );
+}
+
+const STATUS_CONFIG: Record<TileState, { Icon: typeof CheckCircle2; label: string; className: string }> = {
+  running: { Icon: Loader2, label: 'Läuft', className: 'animate-spin text-muted-foreground' },
+  failed: { Icon: XCircle, label: 'Fehler', className: 'text-red-600' },
+  success: { Icon: CheckCircle2, label: 'Fertig', className: 'text-green-700' },
+};
+
+function StatusCell({ state }: { state: TileState }) {
+  const { Icon, label, className } = STATUS_CONFIG[state];
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Icon className={cn('size-4 cursor-default', className)} />
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   );
 }

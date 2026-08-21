@@ -6,7 +6,7 @@ import { jobPostings } from '@/db/schema/job-postings';
 import { matches } from '@/db/schema/matches';
 import { matchJudge } from '@/llm/match-judge';
 
-const MATCH_PREFILTER_SIMILARITY_THRESHOLD = 0.3;
+const MATCH_PREFILTER_SIMILARITY_THRESHOLD = 0.5;
 
 export type MatchSortBy = 'score' | 'postedAt';
 
@@ -29,14 +29,21 @@ export class MatchingService {
 
     await db
       .insert(matches)
-      .values({ profileId, jobId, scoreMeToJob: result.scoreMeToJob, reasoning })
+      .values({ profileId, jobId, scoreMeToJob: result.scoreMeToJob, similarity, reasoning })
       .onConflictDoUpdate({
         target: [matches.profileId, matches.jobId],
-        set: { scoreMeToJob: result.scoreMeToJob, reasoning },
+        set: { scoreMeToJob: result.scoreMeToJob, similarity, reasoning },
       });
   }
 
-  async listRecent(profileId: string, limit = 50, sortBy: MatchSortBy = 'postedAt', offset = 0, maxAgeDays?: number) {
+  async listRecent(
+    profileId: string,
+    limit = 50,
+    sortBy: MatchSortBy = 'postedAt',
+    offset = 0,
+    maxAgeDays?: number,
+    titleQuery?: string,
+  ) {
     const postedAtSort = desc(sql`${jobPostings.data}->>'postedAt'`);
     const primarySort = sortBy === 'postedAt' ? postedAtSort : desc(matches.scoreMeToJob);
     const secondarySort = sortBy === 'postedAt' ? desc(matches.id) : postedAtSort;
@@ -53,18 +60,22 @@ export class MatchingService {
       })
       .from(matches)
       .innerJoin(jobPostings, eq(matches.jobId, jobPostings.id))
-      .where(and(eq(matches.profileId, profileId), this.maxAgeCondition(maxAgeDays)))
+      .where(
+        and(eq(matches.profileId, profileId), this.maxAgeCondition(maxAgeDays), this.titleCondition(titleQuery)),
+      )
       .orderBy(primarySort, secondarySort, desc(matches.id))
       .limit(limit)
       .offset(offset);
   }
 
-  async countByProfile(profileId: string, maxAgeDays?: number): Promise<number> {
+  async countByProfile(profileId: string, maxAgeDays?: number, titleQuery?: string): Promise<number> {
     const [row] = await db
       .select({ count: count() })
       .from(matches)
       .innerJoin(jobPostings, eq(matches.jobId, jobPostings.id))
-      .where(and(eq(matches.profileId, profileId), this.maxAgeCondition(maxAgeDays)));
+      .where(
+        and(eq(matches.profileId, profileId), this.maxAgeCondition(maxAgeDays), this.titleCondition(titleQuery)),
+      );
     return row?.count ?? 0;
   }
 
@@ -72,6 +83,11 @@ export class MatchingService {
     if (maxAgeDays === undefined) return undefined;
     return sql`(${jobPostings.data}->>'postedAt') IS NOT NULL
       AND (${jobPostings.data}->>'postedAt')::timestamptz >= now() - (interval '1 day' * ${maxAgeDays})`;
+  }
+
+  private titleCondition(titleQuery?: string) {
+    if (!titleQuery) return undefined;
+    return sql`(${jobPostings.data}->>'title') ILIKE ${'%' + titleQuery + '%'}`;
   }
 
   private cosineSimilarity(a: number[], b: number[]): number {

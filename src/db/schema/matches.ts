@@ -14,6 +14,7 @@ export const matches = pgTable(
       .notNull()
       .references(() => jobPostings.id, { onDelete: 'cascade' }),
     scoreMeToJob: real('score_me_to_job').notNull(),
+    similarity: real('similarity'),
     reasoning: jsonb('reasoning').$type<MatchReasoning>().notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },

@@ -47,6 +47,7 @@ describe('MatchingService.matchJob (integration)', () => {
 
     const [match] = await db.select().from(matches).where(eq(matches.jobId, jobId));
     expect(match).toMatchObject({ profileId, jobId, scoreMeToJob: 88 });
+    expect(match?.similarity).toBeCloseTo(1);
   });
 
   it('re-running matchJob updates the existing match row instead of duplicating it', async () => {

@@ -1,11 +1,12 @@
 'use client';
 
-import { ChevronDown, Loader2 } from 'lucide-react';
+import { ChevronDown, Loader2, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import { NewApplicationDialog } from '@/app/applications/new-application-dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { MatchSortBy } from '@/core/matching/matching-service';
@@ -43,11 +44,13 @@ export function JobsList({
   initialRows,
   sortBy,
   maxAgeDays,
+  titleQuery,
   totalCount,
 }: {
   initialRows: JobRow[];
   sortBy: MatchSortBy;
   maxAgeDays?: number;
+  titleQuery?: string;
   totalCount: number;
 }) {
   const router = useRouter();
@@ -57,17 +60,34 @@ export function JobsList({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(initialRows.length === JOBS_PAGE_SIZE);
   const [sliderValue, setSliderValue] = useState(maxAgeDays ?? MAX_AGE_DAYS_LIMIT);
+  const [titleInput, setTitleInput] = useState(titleQuery ?? '');
   const sentinelRef = useRef<HTMLDivElement>(null);
   const isLoadingMoreRef = useRef(false);
   const offsetRef = useRef(initialRows.length);
+  const sliderValueRef = useRef(sliderValue);
+  sliderValueRef.current = sliderValue;
 
   function commitMaxAge(value: number) {
     const params = new URLSearchParams();
     if (sortBy === 'postedAt') params.set('sort', sortBy);
     if (value < MAX_AGE_DAYS_LIMIT) params.set('maxAge', String(value));
+    if (titleInput.trim()) params.set('title', titleInput.trim());
     const query = params.toString();
     router.push(query ? `/jobs?${query}` : '/jobs');
   }
+
+  useEffect(() => {
+    if (titleInput === (titleQuery ?? '')) return;
+    const handle = setTimeout(() => {
+      const params = new URLSearchParams();
+      if (sortBy === 'postedAt') params.set('sort', sortBy);
+      if (sliderValueRef.current < MAX_AGE_DAYS_LIMIT) params.set('maxAge', String(sliderValueRef.current));
+      if (titleInput.trim()) params.set('title', titleInput.trim());
+      const query = params.toString();
+      router.replace(query ? `/jobs?${query}` : '/jobs');
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [titleInput, titleQuery, sortBy, router]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -89,7 +109,7 @@ export function JobsList({
     isLoadingMoreRef.current = true;
     setIsLoadingMore(true);
     try {
-      const nextRows = await loadMoreJobsAction(offsetRef.current, sortBy, maxAgeDays);
+      const nextRows = await loadMoreJobsAction(offsetRef.current, sortBy, maxAgeDays, titleQuery);
       offsetRef.current += nextRows.length;
       setRows((prev) => [...prev, ...nextRows]);
       setHasMore(nextRows.length === JOBS_PAGE_SIZE);
@@ -125,6 +145,7 @@ export function JobsList({
             const params = new URLSearchParams();
             if (option.value === 'postedAt') params.set('sort', option.value);
             if (sliderValue < MAX_AGE_DAYS_LIMIT) params.set('maxAge', String(sliderValue));
+            if (titleInput.trim()) params.set('title', titleInput.trim());
             const query = params.toString();
             return (
               <Link
@@ -144,20 +165,46 @@ export function JobsList({
         </div>
       </div>
 
-      <div className="max-w-xs">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Max. Alter</span>
-          <span className="text-sm text-muted-foreground">{formatMaxAgeLabel(sliderValue)}</span>
+      <div className="flex flex-wrap items-start gap-6">
+        <div className="max-w-xs flex-1 basis-56">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Max. Alter</span>
+            <span className="text-sm text-muted-foreground">{formatMaxAgeLabel(sliderValue)}</span>
+          </div>
+          <div className="pt-1">
+            <div className="flex h-8 items-center">
+              <Slider
+                min={0}
+                max={MAX_AGE_DAYS_LIMIT}
+                step={1}
+                value={[sliderValue]}
+                onValueChange={([value]) => setSliderValue(value ?? MAX_AGE_DAYS_LIMIT)}
+                onValueCommit={([value]) => commitMaxAge(value ?? MAX_AGE_DAYS_LIMIT)}
+              />
+            </div>
+          </div>
         </div>
-        <Slider
-          min={0}
-          max={MAX_AGE_DAYS_LIMIT}
-          step={1}
-          value={[sliderValue]}
-          onValueChange={([value]) => setSliderValue(value ?? MAX_AGE_DAYS_LIMIT)}
-          onValueCommit={([value]) => commitMaxAge(value ?? MAX_AGE_DAYS_LIMIT)}
-          className="pt-2"
-        />
+
+        <div className="max-w-xs flex-1 basis-56">
+          <div className="flex items-center justify-between">
+            <span className="invisible text-sm" aria-hidden="true">
+              Platzhalter
+            </span>
+          </div>
+          <div className="pt-1">
+            <div className="relative">
+              <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="text"
+                value={titleInput}
+                onChange={(event) => setTitleInput(event.target.value)}
+                placeholder="Jobs durchsuchen…"
+                aria-label="Jobs durchsuchen"
+                className="pl-8"
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       {rows.length === 0 && (
@@ -210,7 +257,9 @@ export function JobsList({
                   {(
                     [
                       postedAt ? <span key="postedAt">{postedAt}</span> : null,
-                      <span key="company">{row.data.company}</span>,
+                      <span key="company" className="font-medium text-foreground">
+                        {row.data.company}
+                      </span>,
                       row.data.location ? <span key="location">{row.data.location}</span> : null,
                     ] satisfies ReactNode[]
                   )

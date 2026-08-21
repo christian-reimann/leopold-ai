@@ -31,12 +31,14 @@ describe('MatchingService.cosineSimilarity', () => {
   });
 });
 
+const valuesMock = vi.fn(() => ({
+  onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('@/db/client', () => ({
   db: {
     insert: vi.fn(() => ({
-      values: vi.fn(() => ({
-        onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
-      })),
+      values: valuesMock,
     })),
   },
 }));
@@ -103,5 +105,6 @@ describe('MatchingService.matchJob', () => {
 
     expect(matchJudge.judge).toHaveBeenCalledWith(profile, jobPosting);
     expect(db.insert).toHaveBeenCalledTimes(1);
+    expect(valuesMock).toHaveBeenCalledWith(expect.objectContaining({ similarity: expect.closeTo(1) }));
   });
 });

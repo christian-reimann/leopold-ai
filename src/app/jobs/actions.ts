@@ -6,10 +6,15 @@ import { getActiveProfileId } from '@/core/profile/active-profile';
 import { JOBS_PAGE_SIZE } from './constants';
 import type { JobRow } from './jobs-list';
 
-export async function loadMoreJobsAction(offset: number, sortBy: MatchSortBy, maxAgeDays?: number): Promise<JobRow[]> {
+export async function loadMoreJobsAction(
+  offset: number,
+  sortBy: MatchSortBy,
+  maxAgeDays?: number,
+  titleQuery?: string,
+): Promise<JobRow[]> {
   const profileId = await getActiveProfileId();
   const [rows, applicationIdsByJob] = await Promise.all([
-    matchingService.listRecent(profileId, JOBS_PAGE_SIZE, sortBy, offset, maxAgeDays),
+    matchingService.listRecent(profileId, JOBS_PAGE_SIZE, sortBy, offset, maxAgeDays, titleQuery),
     applicationService.listIdsByJobForProfile(profileId),
   ]);
 
