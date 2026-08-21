@@ -37,8 +37,9 @@ export class MatchingService {
   }
 
   async listRecent(profileId: string, limit = 50, sortBy: MatchSortBy = 'postedAt', offset = 0, maxAgeDays?: number) {
-    const primarySort =
-      sortBy === 'postedAt' ? desc(sql`${jobPostings.data}->>'postedAt'`) : desc(matches.scoreMeToJob);
+    const postedAtSort = desc(sql`${jobPostings.data}->>'postedAt'`);
+    const primarySort = sortBy === 'postedAt' ? postedAtSort : desc(matches.scoreMeToJob);
+    const secondarySort = sortBy === 'postedAt' ? desc(matches.id) : postedAtSort;
 
     return db
       .select({
@@ -53,7 +54,7 @@ export class MatchingService {
       .from(matches)
       .innerJoin(jobPostings, eq(matches.jobId, jobPostings.id))
       .where(and(eq(matches.profileId, profileId), this.maxAgeCondition(maxAgeDays)))
-      .orderBy(primarySort, desc(matches.id))
+      .orderBy(primarySort, secondarySort, desc(matches.id))
       .limit(limit)
       .offset(offset);
   }

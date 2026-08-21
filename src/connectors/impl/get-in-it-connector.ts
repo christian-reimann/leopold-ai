@@ -421,12 +421,6 @@ export class GetInItConnector extends BaseConnector<GetInItRawItem> {
     return employmentType !== undefined && criteria.employmentTypes.includes(employmentType);
   }
 
-  /**
-   * `employmentType` from the JSON-LD is unreliable (e.g. it's usually FULL_TIME even for
-   * "Werkstudent" titles) – title hints therefore take priority, the schema serves as a
-   * fallback for the vz/tz distinction, and `full_time` is the final fallback (the vast
-   * majority of get-in-it postings without a title hint are regular full-time positions).
-   */
   private static mapEmploymentType(title: string, schemaType: string | undefined): EmploymentType {
     const normalizedTitle = GetInItConnector.normalize(title);
     for (const [hint, type] of EMPLOYMENT_TYPE_BY_TITLE_HINT) {

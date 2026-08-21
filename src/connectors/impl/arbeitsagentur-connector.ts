@@ -243,11 +243,6 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
     return rest.length > 0 ? `${label} (+${rest.length} weitere)` : label;
   }
 
-  /**
-   * `stellenangebotsart` is more specific than the arbeitszeit* flags (e.g. SELBSTAENDIGKEIT/
-   * PRAKTIKUM_TRAINEE) and therefore takes priority. AUSBILDUNG currently has no matching
-   * EmploymentType equivalent and is deliberately left unmapped.
-   */
   private static mapEmploymentType(details: JobDetails): EmploymentType | undefined {
     if (details.stellenangebotsart === 'SELBSTAENDIGKEIT') return 'freelance';
     if (details.stellenangebotsart === 'PRAKTIKUM_TRAINEE') return 'internship';
@@ -261,8 +256,8 @@ export class ArbeitsagenturConnector extends BaseConnector<ArbeitsagenturRawItem
     ) {
       return 'part_time';
     }
-    if (details.arbeitszeitVollzeit) return 'full_time';
-    return undefined;
+    //if (details.arbeitszeitVollzeit) return 'full_time';
+    return 'full_time';
   }
 
   private static toIsoDateTime(date: string | undefined): string | undefined {

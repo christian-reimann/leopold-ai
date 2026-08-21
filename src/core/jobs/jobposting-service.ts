@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto';
-import { and, cosineDistance, desc, eq, inArray, isNotNull, isNull, ne, sql } from 'drizzle-orm';
+import { and, cosineDistance, desc, eq, inArray, isNotNull, isNull, ne, notExists, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { db } from '@/db/client';
+import { applications } from '@/db/schema/applications';
 import { jobPostings } from '@/db/schema/job-postings';
 import { embeddingClient } from '@/llm/embeddings';
 import type { ConnectorResult } from '@/shared/schemas/connector-result';
@@ -12,6 +14,8 @@ import type { JobPosting } from '@/shared/schemas/job-posting';
  * postings get incorrectly linked), lower it if too many duplicates are missed.
  */
 const DUPLICATE_SIMILARITY_THRESHOLD = 0.95;
+
+const MAX_JOB_POSTING_AGE_DAYS = 56;
 
 export class JobPostingService {
   async listRecentCanonical(limit = 20): Promise<(typeof jobPostings.$inferSelect)[]> {
@@ -137,6 +141,58 @@ export class JobPostingService {
 
   private normalizeForDedupe(value: string): string {
     return value.trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+
+  /**
+   * Deletes stale, unapplied postings. `duplicateOfId` is a self-referencing FK with
+   * `ON DELETE NO ACTION`, so duplicates must go first - `findNearDuplicate` only ever links a
+   * duplicate to an already-canonical row (`duplicateOfId IS NULL` filter), so the reference
+   * depth is always exactly 1 and two passes are enough (no recursion needed).
+   */
+  async deleteStalePostings(): Promise<number> {
+    const deletedDuplicates = await this.deleteStaleDuplicates();
+    const deletedCanonical = await this.deleteStaleCanonical();
+    return deletedDuplicates + deletedCanonical;
+  }
+
+  private async deleteStaleDuplicates(): Promise<number> {
+    const deleted = await db
+      .delete(jobPostings)
+      .where(and(isNotNull(jobPostings.duplicateOfId), this.staleAndUnappliedCondition()))
+      .returning({ id: jobPostings.id });
+    return deleted.length;
+  }
+
+  private async deleteStaleCanonical(): Promise<number> {
+    const duplicates = alias(jobPostings, 'duplicates');
+    const deleted = await db
+      .delete(jobPostings)
+      .where(
+        and(
+          isNull(jobPostings.duplicateOfId),
+          this.staleAndUnappliedCondition(),
+          // Skip canonical rows a surviving (non-stale or applied) duplicate still points at -
+          // those weren't removed above and would otherwise violate the FK.
+          notExists(
+            db.select({ one: sql`1` }).from(duplicates).where(eq(duplicates.duplicateOfId, jobPostings.id)),
+          ),
+        ),
+      )
+      .returning({ id: jobPostings.id });
+    return deleted.length;
+  }
+
+  /**
+   * Age: prefers postedAt from the JSONB payload, falls back to the createdAt column when
+   * postedAt is absent (it's optional per connector). Never matches postings with any
+   * application row, regardless of status.
+   */
+  private staleAndUnappliedCondition() {
+    return and(
+      sql`COALESCE((${jobPostings.data}->>'postedAt')::timestamptz, ${jobPostings.createdAt})
+          < now() - interval '1 day' * ${MAX_JOB_POSTING_AGE_DAYS}`,
+      notExists(db.select({ one: sql`1` }).from(applications).where(eq(applications.jobId, jobPostings.id))),
+    );
   }
 }
 

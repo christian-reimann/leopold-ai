@@ -69,24 +69,43 @@ export class AdzunaConnector extends BaseConnector<AdzunaJob> {
     };
   }
 
-  // Fetches pages until `count` is reached, a page comes back short, or MAX_PAGES is hit.
+  // Adzuna's `what` param is a single free-text query, not a keyword list (unlike the
+  // Arbeitsagentur connector, which can join keywords into one request) – each keyword
+  // from criteria runs as its own search, and results are deduped by job id across them
+  // since the same posting can match more than one keyword.
   private async searchJobs(criteria: SearchCriteria): Promise<AdzunaJob[]> {
     const { appId, appKey } = AdzunaConnector.credentials();
-    const jobs: AdzunaJob[] = [];
-    let page = 1;
-    let total = Number.POSITIVE_INFINITY;
+    const keywordQueries: (string | undefined)[] = criteria.keywords.length > 0 ? criteria.keywords : [undefined];
 
-    while (jobs.length < total && page <= AdzunaConnector.MAX_PAGES) {
-      if (page > 1) {
-        await AdzunaConnector.delay(AdzunaConnector.REQUEST_DELAY_MS);
+    const jobs: AdzunaJob[] = [];
+    const seenIds = new Set<string>();
+    let requestCount = 0;
+
+    for (const keyword of keywordQueries) {
+      const keywordCriteria: SearchCriteria = keyword !== undefined ? { ...criteria, keywords: [keyword] } : criteria;
+      let page = 1;
+      let fetchedForKeyword = 0;
+      let total = Number.POSITIVE_INFINITY;
+
+      while (fetchedForKeyword < total && page <= AdzunaConnector.MAX_PAGES) {
+        if (requestCount > 0) {
+          await AdzunaConnector.delay(AdzunaConnector.REQUEST_DELAY_MS);
+        }
+        requestCount++;
+        const response = await this.fetchPage(keywordCriteria, page, appId, appKey);
+        if (response.results.length === 0) {
+          break;
+        }
+        for (const job of response.results) {
+          if (!seenIds.has(job.id)) {
+            seenIds.add(job.id);
+            jobs.push(job);
+          }
+        }
+        fetchedForKeyword += response.results.length;
+        total = response.count ?? fetchedForKeyword;
+        page++;
       }
-      const response = await this.fetchPage(criteria, page, appId, appKey);
-      if (response.results.length === 0) {
-        break;
-      }
-      jobs.push(...response.results);
-      total = response.count ?? jobs.length;
-      page++;
     }
 
     return jobs;

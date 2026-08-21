@@ -63,7 +63,7 @@ export function JobsList({
 
   function commitMaxAge(value: number) {
     const params = new URLSearchParams();
-    if (sortBy === 'score') params.set('sort', sortBy);
+    if (sortBy === 'postedAt') params.set('sort', sortBy);
     if (value < MAX_AGE_DAYS_LIMIT) params.set('maxAge', String(value));
     const query = params.toString();
     router.push(query ? `/jobs?${query}` : '/jobs');
@@ -123,7 +123,7 @@ export function JobsList({
         <div className="flex items-center gap-1 rounded-md border border-border p-0.5 text-sm">
           {SORT_OPTIONS.map((option) => {
             const params = new URLSearchParams();
-            if (option.value === 'score') params.set('sort', option.value);
+            if (option.value === 'postedAt') params.set('sort', option.value);
             if (sliderValue < MAX_AGE_DAYS_LIMIT) params.set('maxAge', String(sliderValue));
             const query = params.toString();
             return (

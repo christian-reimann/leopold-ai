@@ -26,3 +26,6 @@ export const GenerateApplicationContentJobSchema = z.object({
   instructions: z.string().optional(),
 });
 export type GenerateApplicationContentJob = z.infer<typeof GenerateApplicationContentJobSchema>;
+
+export const CleanupStalePostingsJobSchema = z.object({});
+export type CleanupStalePostingsJob = z.infer<typeof CleanupStalePostingsJobSchema>;

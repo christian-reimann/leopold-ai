@@ -191,6 +191,39 @@ describe('AdzunaConnector.search', () => {
     expect(results).toHaveLength(1);
   });
 
+  it('runs one search per keyword and dedupes jobs matched by more than one keyword', async () => {
+    const requestedWhats: string[] = [];
+    server.use(
+      http.get('https://api.adzuna.com/v1/api/jobs/de/search/:page', ({ request, params }) => {
+        expect(params.page).toBe('1');
+        const what = new URL(request.url).searchParams.get('what');
+        requestedWhats.push(what ?? '');
+        if (what === 'ai engineer') {
+          return HttpResponse.json({
+            results: [adzunaJob({ id: 'job-1' }), adzunaJob({ id: 'job-shared' })],
+            count: 2,
+          });
+        }
+        if (what === 'forward deployed engineer') {
+          return HttpResponse.json({
+            results: [adzunaJob({ id: 'job-shared' }), adzunaJob({ id: 'job-2' })],
+            count: 2,
+          });
+        }
+        throw new Error(`unexpected query: ${what}`);
+      }),
+    );
+    vi.stubEnv('ADZUNA_APP_ID', 'app-id');
+    vi.stubEnv('ADZUNA_APP_KEY', 'app-key');
+
+    const results = await new AdzunaConnector().search(
+      buildSearchCriteria({ keywords: ['ai engineer', 'forward deployed engineer'] }),
+    );
+
+    expect(requestedWhats).toEqual(['ai engineer', 'forward deployed engineer']);
+    expect(results.map((r) => r.sourceId).sort()).toEqual(['job-1', 'job-2', 'job-shared']);
+  });
+
   it('drops raw items that fail JobPostingSchema validation and reports them via lastRunStats', async () => {
     server.use(
       http.get('https://api.adzuna.com/v1/api/jobs/de/search/:page', () =>
