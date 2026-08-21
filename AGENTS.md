@@ -2,11 +2,15 @@ This file provides guidance to AI agents when working with code in this reposito
 
 ## Project
 
-Leopold is a job-search/application AI agent (German UI/domain, code and comments in
-German): manage documents, extract profile data, find job postings via connectors,
-score matches, and generate CVs/cover letters (rendered as PDF) — all steerable through
-an app-wide chat agent with tool-calling. It's a learning project (RAG, agents, workflow
-orchestration, structured output) intended for open-source release.
+Leopold is a job-search/application AI agent (German UI/domain): manage documents,
+extract profile data, find job postings via connectors, score matches, and generate
+CVs/cover letters (rendered as PDF) — all steerable through an app-wide chat agent with
+tool-calling. It's a learning project (RAG, agents, workflow orchestration, structured
+output) intended for open-source release.
+
+Language: UI strings, toasts, and LLM prompts stay German (product targets the German
+job market). Code comments, log/error messages, and `*.md` files (README, AGENTS.md,
+etc.) are written in English.
 
 ## Commands
 
@@ -23,9 +27,24 @@ pnpm lint            # eslint . (includes the module-boundary rules, see below)
 pnpm typecheck       # tsc --noEmit
 pnpm format          # prettier --write .
 pnpm format:check
+
+pnpm test            # unit + integration tests (vitest)
+pnpm test:unit       # fast, no I/O or mocked deps only - no Docker required
+pnpm test:integration  # spins up ephemeral Postgres+pgvector/Redis via testcontainers, needs Docker
+pnpm test:watch      # unit tests in watch mode
+pnpm test:coverage   # unit + integration with coverage
 ```
 
-No test suite exists in this repo currently.
+Tests live in `tests/`, mirroring `src/`'s structure (not colocated) - e.g.
+`src/core/matching/matching-service.ts` → `tests/core/matching/matching-service.test.ts`.
+Unit tests (`*.test.ts`) mock `db`/`llm`/external services; integration tests
+(`*.integration.test.ts`) run against real, ephemeral containers started by
+`vitest.integration.globalsetup.ts` (Testcontainers) - no manual `pnpm db:up` needed for
+them. Both are colocated in the same directory, distinguished only by suffix. The
+`import/no-restricted-paths` module-boundary rules apply equally to `tests/<zone>` and
+`src/<zone>`. Fixtures/builders live under `tests/fixtures/`. External LLM calls
+(Anthropic/Ollama) are always mocked - `MatchJudge`/`ProfileExtractor` accept an injectable
+`LanguageModel`, `EmbeddingClient`'s `fetch` call is stubbed.
 
 One-time setup: `docker exec -it $(docker compose ps -q ollama) ollama pull bge-m3`
 (embedding model) and `.env` populated from `.env.example` (needs at least

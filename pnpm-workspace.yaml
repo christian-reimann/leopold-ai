@@ -1,8 +1,12 @@
 allowBuilds:
+  cpu-features: true
   esbuild: true
   msgpackr-extract: true
+  msw: false
+  protobufjs: true
   puppeteer: true
   sharp: true
+  ssh2: true
   unrs-resolver: true
 minimumReleaseAgeExclude:
   - eslint@10.8.0

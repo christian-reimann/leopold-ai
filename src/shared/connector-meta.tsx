@@ -7,6 +7,16 @@ export type ConnectorMeta = {
 };
 
 const CONNECTOR_META: Record<string, ConnectorMeta> = {
+  adzuna: {
+    label: 'adzuna',
+    logo: <Image src="/images/icons/adzuna.png" alt="" width={16} height={16} className="size-4 shrink-0 rounded-sm" />,
+  },
+  arbeitnow: {
+    label: 'arbeitnow',
+    logo: (
+      <Image src="/images/icons/arbeitnow.png" alt="" width={16} height={16} className="size-4 shrink-0 rounded-sm" />
+    ),
+  },
   arbeitsagentur: {
     label: 'Arbeitsagentur',
     logo: (
@@ -17,16 +27,6 @@ const CONNECTOR_META: Record<string, ConnectorMeta> = {
         height={16}
         className="size-4 shrink-0 rounded-sm"
       />
-    ),
-  },
-  kimeta: {
-    label: 'Kimeta',
-    logo: <Image src="/images/icons/kimeta.png" alt="" width={16} height={16} className="size-4 shrink-0 rounded-sm" />,
-  },
-  arbeitnow: {
-    label: 'arbeitnow',
-    logo: (
-      <Image src="/images/icons/arbeitnow.png" alt="" width={16} height={16} className="size-4 shrink-0 rounded-sm" />
     ),
   },
   'get-in-it': {

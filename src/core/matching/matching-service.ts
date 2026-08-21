@@ -6,7 +6,7 @@ import { jobPostings } from '@/db/schema/job-postings';
 import { matches } from '@/db/schema/matches';
 import { matchJudge } from '@/llm/match-judge';
 
-const MATCH_VORFILTER_SIMILARITY_THRESHOLD = 0.3;
+const MATCH_PREFILTER_SIMILARITY_THRESHOLD = 0.3;
 
 export type MatchSortBy = 'score' | 'postedAt';
 
@@ -20,7 +20,7 @@ export class MatchingService {
     }
 
     const similarity = this.cosineSimilarity(job.embedding, profile.embedding);
-    if (similarity < MATCH_VORFILTER_SIMILARITY_THRESHOLD) {
+    if (similarity < MATCH_PREFILTER_SIMILARITY_THRESHOLD) {
       return;
     }
 

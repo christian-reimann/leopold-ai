@@ -1,4 +1,4 @@
-# Leopold
+# Leopold AI
 
 Leopold is an AI agent for job search and application support: manage documents,
 extract profile data, automatically find job postings and score them via LLM
@@ -46,7 +46,7 @@ pnpm worker:dev     # BullMQ worker (scraping, embedding, matching, PDF export)
 ```
 
 Both processes run independently and communicate exclusively via the
-database and queue (see project plan, §4).
+database and queue.
 
 More commands: `pnpm lint`, `pnpm typecheck`, `pnpm format`, `pnpm db:studio`
 (Drizzle Studio).

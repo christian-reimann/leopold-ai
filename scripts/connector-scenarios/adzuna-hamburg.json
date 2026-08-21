@@ -1,0 +1,6 @@
+{
+  "keywords": ["Java Developer"],
+  "location": "Hamburg",
+  "radiusKm": 10,
+  "connectors": ["adzuna"]
+}

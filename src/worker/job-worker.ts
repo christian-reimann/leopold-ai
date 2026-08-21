@@ -25,6 +25,10 @@ export abstract class JobWorker<TJobNames extends Record<string, string>> {
     this.attachLogging();
   }
 
+  async close(): Promise<void> {
+    await this.worker.close();
+  }
+
   private async dispatch(job: Job): Promise<void> {
     const handler = this.handlers[job.name as TJobNames[keyof TJobNames]];
     if (!handler) {

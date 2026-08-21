@@ -1,0 +1,7 @@
+{
+  "keywords": ["Werkstudent Softwareentwicklung"],
+  "location": "Berlin",
+  "radiusKm": 25,
+  "employmentTypes": ["working_student"],
+  "connectors": ["adzuna"]
+}
